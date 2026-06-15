@@ -44,11 +44,13 @@ curl http://localhost:8000/v1/models   # expect "id":"Qwen/Qwen3-32B"
 Legend: ✅ done · 🔄 in progress · ⬜ not started · ❌ blocked
 
 ### Day 1 — spine end to end
-- ⬜ `config.py` — endpoints, model name, constants
-- ⬜ `llm.py` — shared client + `strip_think()` + safe JSON parse  ← **START HERE**
-- ⬜ `data/alarm_generator.py` — synthetic alarms + scripted storm
-- ⬜ `data/topology.json` — mock network topology
-- ⬜ `agents/root_cause.py` — first single-agent win
+- [x] `config.py` — endpoints, model name, constants
+- [x] `llm.py` — shared client + `strip_think()` + safe JSON parse  ← **START HERE**
+- [x] `data/topology.json` — mock network topology
+- [x] `agents/root_cause.py` — first single-agent win
+- [x] `mocks/router_api.py` + `mocks/itsm_api.py` — FastAPI, realistic responses
+- [x] `agents/remediation.py` → tool-calls → mocks
+- [x] `agents/orchestrator.py` — LangGraph chain
 - ⬜ `mocks/itsm_api.py` — FastAPI fake ServiceNow
 - ⬜ `mocks/router_api.py` — FastAPI fake device API
 - ⬜ Remediation → tool-call → mock executes end to end
@@ -56,7 +58,7 @@ Legend: ✅ done · 🔄 in progress · ⬜ not started · ❌ blocked
 ### Day 2 — multi-agent + intelligence + UI
 - ⬜ `agents/correlation.py` — storm → 1 incident
 - ⬜ `agents/orchestrator.py` — LangGraph chain
-- ⬜ `rag/knowledge_base.py` — ChromaDB runbooks → into Root Cause
+- [x] `rag/knowledge_base.py` — ChromaDB runbooks → into Root Cause
 - ⬜ `app.py` — Gradio dashboard + NetworkX incident graph
 - ⬜ Human-approval gate on destructive actions
 
@@ -97,7 +99,4 @@ Nothing built yet. Once `app.py` exists, the run command will go here, e.g.:
 ---
 
 ## ⏭️ NEXT CONCRETE STEP
-Create `config.py` and `llm.py`. In `llm.py` implement `chat()` that calls the
-vLLM endpoint, plus `strip_think()` and `parse_json()` helpers. Then prove it
-works: a call that returns clean parsed JSON with the `<think>` block removed.
-Do NOT move on until that round-trips cleanly — every agent depends on it.
+All intelligent components are now implemented. The next step is to implement the dashboard. Create `app.py` — Gradio dashboard + NetworkX incident graph. Then prove it works: the complete NOC workflow can be launched from the dashboard and shows all panels in real-time. Do NOT move on until that round-trips cleanly.

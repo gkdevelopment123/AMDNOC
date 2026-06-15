@@ -1,0 +1,56 @@
+{
+  "devices": [
+    {
+      "id": "router-01",
+      "type": "router",
+      "location": "Data Center A",
+      "status": "online"
+    },
+    {
+      "id": "switch-01",
+      "type": "switch",
+      "location": "Data Center A",
+      "status": "online"
+    },
+    {
+      "id": "server-01",
+      "type": "server",
+      "location": "Data Center B",
+      "status": "online"
+    },
+    {
+      "id": "firewall-01",
+      "type": "firewall",
+      "location": "Data Center A",
+      "status": "online"
+    },
+    {
+      "id": "loadbalancer-01",
+      "type": "loadbalancer",
+      "location": "Data Center B",
+      "status": "online"
+    }
+  ],
+  "links": [
+    {
+      "from": "router-01",
+      "to": "switch-01",
+      "status": "up"
+    },
+    {
+      "id": "switch-01",
+      "to": "server-01",
+      "status": "up"
+    },
+    {
+      "from": "router-01",
+      "to": "firewall-01",
+      "status": "up"
+    },
+    {
+      "from": "firewall-01",
+      "to": "loadbalancer-01",
+      "status": "up"
+    }
+  ]
+}
