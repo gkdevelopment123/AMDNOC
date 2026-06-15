@@ -56,7 +56,7 @@ Legend: ✅ done · 🔄 in progress · ⬜ not started · ❌ blocked
 - ⬜ Remediation → tool-call → mock executes end to end
 
 ### Day 2 — multi-agent + intelligence + UI
-- ⬜ `agents/correlation.py` — storm → 1 incident
+- [x] `agents/correlation.py` — storm → 1 incident
 - ⬜ `agents/orchestrator.py` — LangGraph chain
 - [x] `rag/knowledge_base.py` — ChromaDB runbooks → into Root Cause
 - ⬜ `app.py` — Gradio dashboard + NetworkX incident graph
@@ -99,4 +99,4 @@ Nothing built yet. Once `app.py` exists, the run command will go here, e.g.:
 ---
 
 ## ⏭️ NEXT CONCRETE STEP
-All intelligent components are now implemented. The next step is to implement the dashboard. Create `app.py` — Gradio dashboard + NetworkX incident graph. Then prove it works: the complete NOC workflow can be launched from the dashboard and shows all panels in real-time. Do NOT move on until that round-trips cleanly.
+All components are now implemented. Create `app.py` — Gradio dashboard + NetworkX incident graph. Then prove it works: the complete NOC workflow can be launched from the dashboard and shows all panels in real-time. Do NOT move on until that round-trips cleanly.
