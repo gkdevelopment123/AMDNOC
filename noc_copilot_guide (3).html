@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NOC Agentic Copilot — Hackathon Battle Plan</title>
+<style>
+  :root{
+    --ink:#1a1438;
+    --paper:#fffdf7;
+    --rose:#ff4d8d;
+    --tang:#ff8a3d;
+    --gold:#ffc63d;
+    --lime:#3ddc97;
+    --sky:#36c5f0;
+    --violet:#8a5cff;
+    --grape:#5b2a86;
+    --shadow:rgba(40,18,80,.18);
+    --rainbow:linear-gradient(90deg,#ff4d8d,#ff8a3d,#ffc63d,#3ddc97,#36c5f0,#8a5cff);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:"Segoe UI",system-ui,-apple-system,sans-serif;
+    color:var(--ink);
+    background:
+      radial-gradient(circle at 12% 8%,rgba(255,77,141,.14),transparent 38%),
+      radial-gradient(circle at 88% 14%,rgba(54,197,240,.16),transparent 40%),
+      radial-gradient(circle at 50% 100%,rgba(61,220,151,.12),transparent 45%),
+      var(--paper);
+    line-height:1.6;
+    overflow-x:hidden;
+  }
+  h1,h2,h3,h4{font-family:"Trebuchet MS","Segoe UI",sans-serif;line-height:1.15;letter-spacing:-.01em}
+
+  /* rainbow top bar */
+  .topbar{height:8px;background:var(--rainbow);background-size:200% 100%;animation:slide 8s linear infinite;position:sticky;top:0;z-index:50}
+  @keyframes slide{to{background-position:200% 0}}
+
+  /* nav */
+  nav{
+    position:sticky;top:8px;z-index:40;backdrop-filter:blur(10px);
+    background:rgba(255,253,247,.82);border-bottom:2px solid rgba(138,92,255,.18);
+    padding:10px 22px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;
+  }
+  nav .brand{font-weight:800;font-size:1.05rem;margin-right:auto;color:var(--grape)}
+  nav a{
+    text-decoration:none;font-size:.82rem;font-weight:600;color:var(--ink);
+    padding:5px 12px;border-radius:999px;transition:.18s;border:1.5px solid transparent;
+  }
+  nav a:hover{border-color:var(--violet);background:rgba(138,92,255,.08)}
+
+  .wrap{max-width:1080px;margin:0 auto;padding:0 22px}
+
+  /* hero */
+  header.hero{padding:64px 0 40px;text-align:center;position:relative}
+  .eyebrow{
+    display:inline-block;font-weight:800;font-size:.72rem;letter-spacing:.22em;text-transform:uppercase;
+    padding:7px 16px;border-radius:999px;color:#fff;background:var(--rainbow);background-size:200% 100%;
+    animation:slide 8s linear infinite;margin-bottom:18px;box-shadow:0 6px 18px var(--shadow);
+  }
+  .hero h1{font-size:clamp(2.1rem,6vw,3.7rem);font-weight:900;margin-bottom:14px}
+  .hero h1 .grad{background:var(--rainbow);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .hero p.sub{font-size:clamp(1rem,2.4vw,1.25rem);max-width:680px;margin:0 auto 8px;color:#4a3d6b;font-weight:500}
+  .hero .meta{margin-top:22px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+  .chip{
+    font-size:.78rem;font-weight:700;padding:7px 14px;border-radius:999px;background:#fff;
+    border:2px solid;box-shadow:0 4px 12px var(--shadow);
+  }
+  .chip.r{border-color:var(--rose);color:var(--rose)}
+  .chip.b{border-color:var(--sky);color:#0d8fc0}
+  .chip.g{border-color:var(--lime);color:#1d9b6c}
+  .chip.v{border-color:var(--violet);color:var(--violet)}
+
+  /* section scaffolding */
+  section{padding:46px 0;border-top:1px dashed rgba(138,92,255,.22)}
+  .sec-head{display:flex;align-items:center;gap:14px;margin-bottom:8px}
+  .sec-num{
+    flex:0 0 auto;width:46px;height:46px;border-radius:14px;display:grid;place-items:center;
+    font-weight:900;font-size:1.2rem;color:#fff;box-shadow:0 6px 16px var(--shadow);transform:rotate(-4deg);
+  }
+  .sec-head h2{font-size:clamp(1.5rem,4vw,2.1rem)}
+  .lede{color:#4a3d6b;font-size:1.02rem;margin:6px 0 26px;max-width:760px}
+
+  .c-rose{background:var(--rose)} .c-tang{background:var(--tang)} .c-gold{background:var(--gold)}
+  .c-lime{background:var(--lime)} .c-sky{background:var(--sky)} .c-violet{background:var(--violet)}
+  .c-grape{background:var(--grape)}
+
+  /* cards */
+  .grid{display:grid;gap:18px}
+  .g2{grid-template-columns:repeat(2,1fr)}
+  .g3{grid-template-columns:repeat(3,1fr)}
+  @media(max-width:760px){.g2,.g3{grid-template-columns:1fr}}
+  .card{
+    background:#fff;border-radius:18px;padding:22px;box-shadow:0 10px 28px var(--shadow);
+    border:1px solid rgba(138,92,255,.1);position:relative;overflow:hidden;transition:.2s;
+  }
+  .card:hover{transform:translateY(-3px);box-shadow:0 16px 36px var(--shadow)}
+  .card::before{content:"";position:absolute;left:0;top:0;bottom:0;width:6px}
+  .card.k-rose::before{background:var(--rose)}
+  .card.k-tang::before{background:var(--tang)}
+  .card.k-gold::before{background:var(--gold)}
+  .card.k-lime::before{background:var(--lime)}
+  .card.k-sky::before{background:var(--sky)}
+  .card.k-violet::before{background:var(--violet)}
+  .card h3{font-size:1.12rem;margin-bottom:8px;display:flex;align-items:center;gap:8px}
+  .card h4{font-size:.95rem;margin:10px 0 4px;color:var(--grape)}
+  .card .ico{font-size:1.3rem}
+  .card p,.card li{font-size:.92rem;color:#3c3358}
+  .card ul{margin:6px 0 0 18px}
+  .card li{margin-bottom:4px}
+  .tag{display:inline-block;font-size:.68rem;font-weight:800;letter-spacing:.04em;padding:3px 9px;border-radius:6px;color:#fff;margin-bottom:8px}
+
+  /* callout */
+  .callout{
+    border-radius:16px;padding:18px 22px;margin:22px 0;font-weight:500;
+    border-left:7px solid;display:flex;gap:14px;align-items:flex-start;background:#fff;box-shadow:0 8px 22px var(--shadow);
+  }
+  .callout .big{font-size:1.5rem;line-height:1}
+  .callout.warn{border-color:var(--rose);background:linear-gradient(100deg,#fff,#fff5f8)}
+  .callout.tip{border-color:var(--lime);background:linear-gradient(100deg,#fff,#f1fdf7)}
+  .callout.info{border-color:var(--sky);background:linear-gradient(100deg,#fff,#f0fbff)}
+  .callout.pick{border-color:var(--gold);background:linear-gradient(100deg,#fff,#fffaf0)}
+  .callout strong{color:var(--grape)}
+
+  /* tech stack table */
+  .stack{width:100%;border-collapse:separate;border-spacing:0;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 10px 28px var(--shadow)}
+  .stack th{background:var(--grape);color:#fff;text-align:left;padding:13px 16px;font-size:.82rem;letter-spacing:.04em;text-transform:uppercase}
+  .stack td{padding:12px 16px;border-bottom:1px solid rgba(138,92,255,.1);font-size:.9rem;vertical-align:top}
+  .stack tr:last-child td{border-bottom:none}
+  .stack tr:nth-child(even) td{background:rgba(54,197,240,.05)}
+  .stack .layer{font-weight:800;color:var(--grape)}
+  .stack .pill{display:inline-block;font-size:.74rem;font-weight:700;padding:3px 10px;border-radius:999px;color:#fff}
+
+  /* flow chart */
+  .flowwrap{background:#fff;border-radius:20px;padding:26px;box-shadow:0 12px 32px var(--shadow);overflow-x:auto}
+  .flow{display:flex;flex-direction:column;gap:0;min-width:560px}
+  .frow{display:flex;align-items:stretch;gap:16px;position:relative}
+  .fnode{
+    flex:1;border-radius:14px;padding:14px 16px;color:#fff;font-weight:600;font-size:.9rem;
+    box-shadow:0 6px 16px var(--shadow);position:relative;
+  }
+  .fnode .ttl{font-weight:900;font-size:.96rem;display:block;margin-bottom:3px}
+  .fnode small{font-weight:500;opacity:.95;font-size:.8rem}
+  .arrow-down{align-self:center;font-size:1.5rem;color:var(--violet);margin:4px 0;font-weight:900}
+  .side{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+  .ext{
+    flex:0 0 auto;border:2px dashed;border-radius:12px;padding:10px 14px;font-size:.82rem;font-weight:700;background:#fff;
+  }
+  .ext.mock{border-color:var(--rose);color:var(--rose)}
+  .ext.serve{border-color:var(--sky);color:#0d8fc0}
+  .ext.ui{border-color:var(--lime);color:#1d9b6c}
+  .legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:18px;font-size:.8rem;font-weight:600}
+  .legend span{display:flex;align-items:center;gap:6px}
+  .dot{width:13px;height:13px;border-radius:4px;display:inline-block}
+
+  /* numbered steps */
+  .steps{counter-reset:s;display:grid;gap:14px}
+  .step{
+    background:#fff;border-radius:16px;padding:18px 20px 18px 64px;position:relative;box-shadow:0 8px 22px var(--shadow);
+    border:1px solid rgba(138,92,255,.1);
+  }
+  .step::before{
+    counter-increment:s;content:counter(s);position:absolute;left:16px;top:16px;
+    width:36px;height:36px;border-radius:10px;display:grid;place-items:center;color:#fff;font-weight:900;
+    background:var(--rainbow);background-size:200% 100%;animation:slide 8s linear infinite;
+  }
+  .step h3{font-size:1.05rem;margin-bottom:4px}
+  .step p,.step li{font-size:.9rem;color:#3c3358}
+  .step code,code.inline{background:rgba(91,42,134,.1);color:var(--grape);padding:2px 7px;border-radius:6px;font-size:.84rem;font-family:"Cascadia Code",Consolas,monospace;font-weight:600}
+
+  pre{
+    background:#241a44;color:#f4eeff;border-radius:14px;padding:16px 18px;overflow-x:auto;
+    font-family:"Cascadia Code",Consolas,monospace;font-size:.82rem;line-height:1.5;margin:12px 0;
+    box-shadow:0 8px 22px var(--shadow);border:1px solid rgba(138,92,255,.3);
+  }
+  pre .cmt{color:#9d8bd0}
+  pre .key{color:#5be4b4}
+  pre .str{color:#ffd166}
+  pre .flag{color:#6fd3ff}
+
+  /* file cards for agentic build */
+  .filecard{background:#fff;border-radius:16px;padding:20px;box-shadow:0 10px 28px var(--shadow);border:1px solid rgba(138,92,255,.1)}
+  .filecard .fname{font-family:"Cascadia Code",monospace;font-weight:800;font-size:.95rem;color:var(--grape);display:flex;align-items:center;gap:8px;margin-bottom:10px}
+  .filecard .fname .dot{width:11px;height:11px;border-radius:50%}
+
+  /* timeline */
+  .tl{position:relative;padding-left:30px}
+  .tl::before{content:"";position:absolute;left:9px;top:6px;bottom:6px;width:4px;border-radius:4px;background:var(--rainbow)}
+  .tl-item{position:relative;margin-bottom:16px;background:#fff;border-radius:14px;padding:14px 18px;box-shadow:0 6px 18px var(--shadow)}
+  .tl-item::before{content:"";position:absolute;left:-25px;top:18px;width:16px;height:16px;border-radius:50%;border:3px solid #fff;box-shadow:0 0 0 3px var(--violet)}
+  .tl-item h4{font-size:1rem;color:var(--grape)}
+  .tl-item .when{font-size:.72rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--rose)}
+
+  footer{background:var(--ink);color:#e9e2ff;padding:36px 22px;text-align:center;margin-top:10px}
+  footer .rainbow-line{height:5px;background:var(--rainbow);border-radius:5px;max-width:240px;margin:0 auto 18px}
+  footer a{color:var(--gold)}
+
+  .pin{font-weight:800;color:var(--rose)}
+  .ok{color:#1d9b6c;font-weight:800}
+  .no{color:var(--rose);font-weight:800}
+</style>
+</head>
+<body>
+<div class="topbar"></div>
+<nav>
+  <span class="brand">🛰️ NOC Copilot</span>
+  <a href="#login">Login Pick</a>
+  <a href="#what">What</a>
+  <a href="#stack">Stack</a>
+  <a href="#flow">Flow</a>
+  <a href="#start">Start</a>
+  <a href="#agentic">Agentic Build</a>
+  <a href="#claudecode">Claude Code</a>
+  <a href="#suggest">Suggestions</a>
+  <a href="#demo">Demo</a>
+</nav>
+
+<header class="hero">
+  <div class="wrap">
+    <span class="eyebrow">TCS × AMD Hackathon · Instinct MI300X</span>
+    <h1>Telecom NOC<br><span class="grad">Agentic Copilot</span></h1>
+    <p class="sub">A multi-agent system that drowns out alarm storms, finds the root cause, fixes it, and files the ticket — running entirely on AMD GPU inside JupyterLab.</p>
+    <div class="meta">
+      <span class="chip r">Multi-agent · LangGraph</span>
+      <span class="chip b">vLLM + Qwen on ROCm</span>
+      <span class="chip g">Mocked ITSM &amp; Routers</span>
+      <span class="chip v">Live Gradio Dashboard</span>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+<!-- ================= LOGIN PICK ================= -->
+<section id="login">
+  <div class="sec-head"><div class="sec-num c-rose">0</div><h2>First Decision: Which Environment to Select</h2></div>
+  <p class="lede">This is the dropdown you saw on login. Your entire build depends on getting this right, so handle it before anything else.</p>
+
+  <div class="callout pick">
+    <span class="big">✅</span>
+    <div>
+      <strong>Select “Default (ROCm + vLLM)”</strong> — or the equivalent <code class="inline">vLLM 0.17.1 + ROCm 7.0</code>.<br>
+      Your architecture serves Qwen through vLLM's OpenAI-compatible endpoint, so you want the environment that already has vLLM baked in. The fact that it's pre-selected confirms it's the intended default.
+    </div>
+  </div>
+
+  <div class="grid g2">
+    <div class="card k-lime">
+      <span class="tag c-lime">CHOOSE THIS</span>
+      <h3>✅ Default (ROCm + vLLM)</h3>
+      <p>vLLM is ready to serve the hosted Qwen model immediately. OpenAI-compatible API on port 8000. Everything in this guide assumes this environment.</p>
+    </div>
+    <div class="card k-violet">
+      <span class="tag c-violet">ALSO FINE</span>
+      <h3>🟣 SGLang 0.5.9 + ROCm 7.0</h3>
+      <p>SGLang is a strong alternative serving engine and also runs Qwen on MI300X. Only pick it if organizers specifically tell you to — otherwise stay on vLLM for consistency with all examples.</p>
+    </div>
+    <div class="card k-tang">
+      <span class="tag c-tang">AVOID FOR THIS</span>
+      <h3>🟠 ROCm 7.2 + Ubuntu 24.04 + Torch 2.10</h3>
+      <p>This is a bare PyTorch environment with <span class="no">no vLLM</span>. You'd waste setup time installing a serving stack yourself. Only useful if you were doing raw model training/fine-tuning.</p>
+    </div>
+    <div class="card k-sky">
+      <span class="tag c-sky">REMEMBER</span>
+      <h3>🔵 The 240 GB RAM trap</h3>
+      <p>Your pod has 192 GB VRAM but a hard <span class="pin">240 GB system-RAM OOM limit</span>. Let vLLM hold the model in VRAM — don't also load weights in your notebook, or the pod gets killed.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================= WHAT ================= -->
+<section id="what">
+  <div class="sec-head"><div class="sec-num c-tang">1</div><h2>What You're Actually Building</h2></div>
+  <p class="lede">One sentence: <strong>50 alarms become 1 incident, an AI names the cause, picks a fix, calls the API to apply it, and opens a ticket — live on screen.</strong> That arc from chaos to calm is your whole demo.</p>
+
+  <div class="grid g2">
+    <div class="card k-rose">
+      <h3><span class="ico">🔥</span> The Problem (the pain)</h3>
+      <p>NOC teams get flooded with hundreds of alarms an hour. A single core fault cascades into dozens of downstream alerts. Engineers can't see the signal in the noise → slow root-cause analysis → <span class="pin">SLA breaches</span>.</p>
+    </div>
+    <div class="card k-lime">
+      <h3><span class="ico">✨</span> The Solution (the magic)</h3>
+      <p>Specialized AI agents collaborate: they <strong>correlate</strong> the storm into one incident, <strong>reason</strong> out the root cause against runbooks, <strong>decide</strong> a remediation, <strong>execute</strong> it via tool-calls, and <strong>auto-file</strong> an ITSM ticket — with a human approval gate on risky actions.</p>
+    </div>
+  </div>
+
+  <div class="callout info">
+    <span class="big">🧠</span>
+    <div><strong>Why “multi-agent” (not one big prompt)?</strong> The brief explicitly says multi-agent, and splitting work into specialists each with a narrow job is what impresses judges <em>and</em> works better. Each agent does one thing well, then hands off.</div>
+  </div>
+</section>
+
+<!-- ================= AGENTS ================= -->
+<section id="agents">
+  <div class="sec-head"><div class="sec-num c-gold">2</div><h2>The Agent Team</h2></div>
+  <p class="lede">Five roles. For a half-day build, the three starred (★) carry the whole story — add the rest if time allows.</p>
+
+  <div class="grid g3">
+    <div class="card k-sky"><h3>📡 Ingestion Agent</h3><p>Takes raw alarms, logs &amp; KPIs and normalizes them into one clean structured schema everything else can read.</p></div>
+    <div class="card k-violet"><h3>🔗 Correlation Agent ★</h3><p>The highest-value piece. Collapses the alarm storm — 40 alerts → 1 incident — and flags which alarm is the root event vs. cascading noise.</p></div>
+    <div class="card k-rose"><h3>🔍 Root Cause Agent ★</h3><p>Reasons over the correlated incident + retrieved runbooks (RAG) to name the likely cause with a confidence score.</p></div>
+    <div class="card k-lime"><h3>🔧 Remediation Agent ★</h3><p>Decides the fix and <strong>which tool to call</strong>. Auto-executes low-risk fixes; routes high-risk ones to human approval.</p></div>
+    <div class="card k-tang"><h3>🎛️ Orchestrator</h3><p>The LangGraph state machine that routes an incident through the chain and manages handoffs &amp; branching.</p></div>
+    <div class="card k-gold"><h3>🎫 Action / ITSM Executor</h3><p>Carries out the chosen tool-calls against the mock router API and mock ITSM, returns real-looking results.</p></div>
+  </div>
+</section>
+
+<!-- ================= STACK ================= -->
+<section id="stack">
+  <div class="sec-head"><div class="sec-num c-lime">3</div><h2>Complete Tech Stack</h2></div>
+  <p class="lede">Every component runs <strong>internally</strong> on their GPU. Nothing external. The <code class="inline">openai</code> library name is misleading — pointed at localhost it makes zero outbound calls.</p>
+
+  <table class="stack">
+    <thead><tr><th>Layer</th><th>Tool</th><th>Why this one</th></tr></thead>
+    <tbody>
+      <tr><td class="layer">LLM serving</td><td><span class="pill c-sky">vLLM (ROCm)</span></td><td>Pre-hosted in your environment. Exposes OpenAI-compatible endpoint on <code class="inline">:8000</code>. Optimized &amp; benchmarked for MI300X.</td></tr>
+      <tr><td class="layer">Model</td><td><span class="pill c-violet">Qwen (hosted)</span></td><td>Use the Qwen model they've already served. Native tool-calling parser in vLLM — exactly what “execute API calls” needs.</td></tr>
+      <tr><td class="layer">LLM client</td><td><span class="pill c-grape">openai-python</span></td><td>Your code talks to your own vLLM via <code class="inline">base_url=localhost:8000/v1</code>. Fully internal.</td></tr>
+      <tr><td class="layer">Agent framework</td><td><span class="pill c-rose">LangGraph</span></td><td>Built for multi-agent state machines with explicit handoffs. Maps 1:1 onto your agent team.</td></tr>
+      <tr><td class="layer">RAG / knowledge</td><td><span class="pill c-lime">ChromaDB + sentence-transformers</span></td><td>Stores runbooks &amp; past incidents so the RCA agent cites real procedures and hallucinates less.</td></tr>
+      <tr><td class="layer">Mock backend</td><td><span class="pill c-tang">FastAPI</span></td><td>Hosts the fake ITSM (ServiceNow-like) and fake router/device APIs the agents call.</td></tr>
+      <tr><td class="layer">Alarm data</td><td><span class="pill c-gold">Custom Python generator</span></td><td>Synthetic telecom alarms + the scripted “alarm storm” hero scenario. No real data needed.</td></tr>
+      <tr><td class="layer">Data store</td><td><span class="pill c-sky">SQLite / in-memory</span></td><td>A demo doesn't need a real DB. Keep state in dicts or a tiny SQLite file.</td></tr>
+      <tr><td class="layer">Correlation viz</td><td><span class="pill c-violet">NetworkX</span></td><td>Renders the “40 alarms → 1 incident” graph — a strong visual moment for judges.</td></tr>
+      <tr><td class="layer">Dashboard</td><td><span class="pill c-lime">Gradio</span></td><td>Runs right inside Jupyter, shows agents firing live. Use <code class="inline">share=False</code> (internal only).</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout warn">
+    <span class="big">⚠️</span>
+    <div><strong>Two corrections to the plan your friend got:</strong> (1) Don't load Llama-3.1-8B with <code class="inline">transformers</code> + <code class="inline">device_map="auto"</code> — that ignores the hosted model and risks OOM. Call the vLLM endpoint instead. (2) Don't use <code class="inline">demo.launch(share=True)</code> — that opens a public tunnel, which may break the “internal only” rule. Use <code class="inline">share=False</code>.</div>
+  </div>
+</section>
+
+<!-- ================= FLOW ================= -->
+<section id="flow">
+  <div class="sec-head"><div class="sec-num c-sky">4</div><h2>End-to-End Flow — How It Actually Works</h2></div>
+  <p class="lede">Follow an alarm storm from the moment it hits to a resolved incident. The blue spine is your agent pipeline; dashed boxes are services that sit beside it.</p>
+
+  <div class="flowwrap">
+    <div class="flow">
+      <div class="frow"><div class="fnode c-gold"><span class="ttl">① Alarm Storm Generated</span><small>Synthetic generator fires one root fault → 30–40 cascading alarms (the scripted “Simulate outage” button)</small></div></div>
+      <div class="arrow-down">⬇</div>
+      <div class="frow">
+        <div class="fnode c-tang"><span class="ttl">② Ingestion Endpoint (FastAPI)</span><small>Alarms received &amp; normalized into one clean schema → stored</small></div>
+        <div class="side"><span class="ext serve">🗄️ SQLite / in-memory store</span></div>
+      </div>
+      <div class="arrow-down">⬇</div>
+      <div class="frow"><div class="fnode c-violet"><span class="ttl">③ Correlation Agent</span><small>Groups 40 alarms → 1 incident · marks root event vs cascade · builds the NetworkX graph</small></div></div>
+      <div class="arrow-down">⬇</div>
+      <div class="frow">
+        <div class="fnode c-rose"><span class="ttl">④ Root Cause Agent (+ RAG)</span><small>Retrieves runbooks from ChromaDB → reasons → “Core router R-12 down, sites isolated” + confidence</small></div>
+        <div class="side"><span class="ext serve">📚 ChromaDB runbooks</span></div>
+      </div>
+      <div class="arrow-down">⬇</div>
+      <div class="frow"><div class="fnode c-lime"><span class="ttl">⑤ Remediation Agent</span><small>Ranks fixes by risk · picks tool + arguments · low-risk = auto, high-risk = human approve</small></div></div>
+      <div class="arrow-down">⬇</div>
+      <div class="frow">
+        <div class="fnode c-sky"><span class="ttl">⑥ Action Executor — Tool Calls</span><small>LLM emits the tool-call; your code runs it against the mocks &amp; feeds results back</small></div>
+        <div class="side">
+          <span class="ext mock">🔌 Mock Router API<br><small>reset_router() / restart_interface()</small></span>
+          <span class="ext mock">🎫 Mock ITSM API<br><small>create_ticket() / update_ticket()</small></span>
+        </div>
+      </div>
+      <div class="arrow-down">⬇</div>
+      <div class="frow">
+        <div class="fnode c-grape"><span class="ttl">⑦ Live Dashboard (Gradio)</span><small>Streams every step: alarms → incident graph → root cause → action → ticket → SLA beaten ✅</small></div>
+        <div class="side"><span class="ext ui">🖥️ Judges watch it happen</span></div>
+      </div>
+    </div>
+
+    <div class="legend">
+      <span><span class="dot c-violet"></span> Agent (LLM reasoning)</span>
+      <span><span class="dot c-sky"></span> Serving / execution</span>
+      <span><span class="dot c-rose"></span> Mocked external system</span>
+      <span><span class="dot c-gold"></span> Data / trigger</span>
+    </div>
+  </div>
+
+  <div class="callout info" style="margin-top:24px">
+    <span class="big">🔁</span>
+    <div><strong>The vLLM Qwen endpoint sits at the center.</strong> Agents ③–⑤ all call the <em>same</em> <code class="inline">localhost:8000/v1</code> endpoint with different prompts &amp; tools. One server, many specialists.</div>
+  </div>
+</section>
+
+<!-- ================= MOCK STRATEGY ================= -->
+<section id="mock">
+  <div class="sec-head"><div class="sec-num c-rose">5</div><h2>Mocking ITSM &amp; Routers (you have no real access)</h2></div>
+  <p class="lede">This is the <span class="ok">right</span> call and judges expect it. A “mock” is a small local service that <em>looks and behaves</em> like the real system so the agent calls it identically.</p>
+
+  <div class="grid g2">
+    <div class="card k-tang">
+      <h3>🎫 Mock ITSM (fake ServiceNow)</h3>
+      <p>A FastAPI service with endpoints like <code class="inline">create_ticket</code>, <code class="inline">update_ticket</code>, <code class="inline">get_ticket</code>. Stores tickets in a dict, returns a ticket ID.</p>
+      <h4>Make it convincing</h4>
+      <ul><li>Add realistic latency &amp; status transitions (New → In Progress → Resolved)</li><li>Show a live “Tickets” panel on the dashboard that updates as tickets are created</li></ul>
+    </div>
+    <div class="card k-sky">
+      <h3>🔌 Mock Router / Device API</h3>
+      <p>Fake endpoints like <code class="inline">reset_router(device_id)</code>, <code class="inline">restart_interface(...)</code>, <code class="inline">clear_bgp(...)</code> returning success/failure JSON.</p>
+      <h4>Make it convincing</h4>
+      <ul><li>Occasional simulated failure so the agent must retry or escalate</li><li>Echo a fake device response so the action looks real on screen</li></ul>
+    </div>
+  </div>
+
+  <div class="callout tip">
+    <span class="big">💬</span>
+    <div><strong>Say this to judges:</strong> “ITSM and device APIs are mocked for the hackathon; swapping in real ServiceNow or network controllers is a config change, not a redesign.” That frames the mock as a <span class="ok">clean integration boundary</span> — a strength, not a gap.</div>
+  </div>
+</section>
+
+<!-- ================= START STEP BY STEP ================= -->
+<section id="start">
+  <div class="sec-head"><div class="sec-num c-violet">6</div><h2>How to Start — Step by Step</h2></div>
+  <p class="lede">Do these in order inside JupyterLab. <span class="pin">Step 2 is non-negotiable first</span> — everything depends on a working endpoint.</p>
+
+  <div class="steps">
+    <div class="step">
+      <h3>Open a Terminal</h3>
+      <p>In JupyterLab: <strong>File → New → Terminal</strong>. Keep one terminal for the model server, open others for everything else. Most setup happens here, not in notebook cells.</p>
+    </div>
+    <div class="step">
+      <h3>Check if Qwen is already being served</h3>
+      <p>They've hosted the model, so test for it before starting your own:</p>
+      <pre><span class="cmt"># does an endpoint already answer?</span>
+curl http://localhost:8000/v1/models</pre>
+      <p><span class="ok">Got JSON with a model name?</span> → it's live, note the name, skip to Step 4. <span class="no">Refused/hangs?</span> → start it yourself in Step 3 (and ask organizers the right port).</p>
+    </div>
+    <div class="step">
+      <h3>(If needed) Start the vLLM server</h3>
+      <p>One MI300X = <code class="inline">--tensor-parallel-size 1</code>. Run in a dedicated terminal and leave it open:</p>
+      <pre><span class="key">vllm</span> serve Qwen/Qwen3.6-35B-A3B <span class="flag">\</span>
+  <span class="flag">--host</span> 0.0.0.0  <span class="flag">--port</span> 8000 <span class="flag">\</span>
+  <span class="flag">--api-key</span> <span class="str">sk-team-key</span> <span class="flag">\</span>
+  <span class="flag">--tensor-parallel-size</span> 1 <span class="flag">\</span>
+  <span class="flag">--max-model-len</span> 32768 <span class="flag">\</span>
+  <span class="flag">--enable-auto-tool-choice</span> <span class="flag">--tool-call-parser</span> qwen3_coder</pre>
+      <p>Replace the model name with whatever's actually on disk (<code class="inline">ls ~/.cache/huggingface/hub/</code>). Wait for the “listening on 8000” line. Keep <code class="inline">max-model-len</code> modest to respect the 240 GB RAM cap.</p>
+    </div>
+    <div class="step">
+      <h3>Confirm you can talk to it</h3>
+      <pre>curl http://localhost:8000/v1/chat/completions <span class="flag">\</span>
+  -H <span class="str">"Content-Type: application/json"</span> <span class="flag">\</span>
+  -H <span class="str">"Authorization: Bearer sk-team-key"</span> <span class="flag">\</span>
+  -d <span class="str">'{"model":"...","messages":[{"role":"user","content":"say hello"}]}'</span></pre>
+      <p>A reply means your backend is live. <strong>Everything else builds on this.</strong></p>
+    </div>
+    <div class="step">
+      <h3>Install your Python deps</h3>
+      <pre>pip install openai langgraph langchain-community <span class="flag">\</span>
+            chromadb sentence-transformers <span class="flag">\</span>
+            fastapi uvicorn gradio networkx</pre>
+    </div>
+    <div class="step">
+      <h3>Build in this order (always keep a working version)</h3>
+      <ul>
+        <li><strong>Data:</strong> synthetic alarm generator + the scripted storm scenario</li>
+        <li><strong>One agent end-to-end:</strong> Root Cause calling the endpoint — prove the loop</li>
+        <li><strong>Mocks:</strong> FastAPI ITSM + router APIs</li>
+        <li><strong>Tool-calling:</strong> wire the agent to trigger the mocks</li>
+        <li><strong>Correlation:</strong> rule-based first, LLM-enhanced if time</li>
+        <li><strong>Dashboard:</strong> Gradio tying it together</li>
+        <li><strong>Rehearse</strong> the storm demo until it lands every time</li>
+      </ul>
+    </div>
+    <div class="step">
+      <h3>Push to GitHub</h3>
+      <p><code class="inline">git init</code> → add a <code class="inline">.gitignore</code> that excludes model weights &amp; <code class="inline">.cache</code> → commit → push. Your masterplan &amp; prompt files (next section) live here too.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================= AGENTIC BUILD ================= -->
+<section id="agentic">
+  <div class="sec-head"><div class="sec-num c-grape">7</div><h2>Building It <em>With</em> a Coding Agent</h2></div>
+  <p class="lede">Since you have access to the hosted LLM, you can point a coding agent at it to help build the project. You have <strong>two solid options</strong>: Aider (uses AMD Qwen directly — fully internal) or Claude Code (stronger reasoning, bridged to AMD via a proxy). Pick one; both use the same three markdown files below.</p>
+
+  <div class="callout info">
+    <span class="big">🧩</span>
+    <div><strong>Two different "agents" — don't confuse them.</strong> The <strong>coding agent</strong> builds your app (Aider or Claude Code). The <strong>NOC agent</strong> <em>is</em> your app. You use the first to build the second.</div>
+  </div>
+
+  <!-- OPTION PICKER CARDS -->
+  <div class="grid g2" style="margin-bottom:28px">
+    <div class="card k-sky">
+      <span class="tag c-sky">OPTION A</span>
+      <h3>🛠️ Aider → AMD Qwen (fully internal)</h3>
+      <p>Open-source, git-native, points directly at your vLLM endpoint. No external API. 100% on-prem. Runs in a Jupyter terminal.</p>
+      <h4>Best if:</h4>
+      <ul>
+        <li>You want zero external API calls</li>
+        <li>Hackathon rules require fully internal inference</li>
+        <li>You don't have a Claude API key handy</li>
+      </ul>
+    </div>
+    <div class="card k-violet">
+      <span class="tag c-violet">OPTION B</span>
+      <h3>🤖 Claude Code → AMD vLLM (bridged)</h3>
+      <p>Claude Code's agentic intelligence redirected to your AMD GPU via a litellm proxy. More capable coding agent; your NOC agents still run fully on AMD.</p>
+      <h4>Best if:</h4>
+      <ul>
+        <li>You want stronger multi-file code reasoning</li>
+        <li>You already use Claude Code locally</li>
+        <li>External API is allowed for the <em>coding</em> layer</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ===== OPTION A: AIDER ===== -->
+  <div style="background:linear-gradient(100deg,#f0fbff,#fff);border:2px solid var(--sky);border-radius:20px;padding:26px;margin-bottom:28px">
+    <h3 style="color:#0d8fc0;font-size:1.25rem;margin-bottom:4px">🛠️ Option A — Aider + AMD Qwen</h3>
+    <p style="color:#3c3358;font-size:.93rem;margin-bottom:18px">One command setup. Points directly at <code class="inline">localhost:8000/v1</code>. No proxy needed. Fully internal.</p>
+
+    <div class="steps">
+      <div class="step">
+        <h3>Confirm the vLLM endpoint is live</h3>
+        <pre><span class="cmt"># Must return JSON with model name before proceeding</span>
+curl http://localhost:8000/v1/models</pre>
+      </div>
+      <div class="step">
+        <h3>Install Aider</h3>
+        <pre>pip install aider-chat</pre>
+      </div>
+      <div class="step">
+        <h3>Initialise your git repo</h3>
+        <pre>mkdir noc-copilot &amp;&amp; cd noc-copilot
+git init
+<span class="cmt"># Create MASTERPLAN.md, PROMPTS.md, HANDOVER.md here (see below)</span></pre>
+      </div>
+      <div class="step">
+        <h3>Launch Aider pointed at AMD Qwen</h3>
+        <pre>aider <span class="flag">\</span>
+  --openai-api-base http://localhost:8000/v1 <span class="flag">\</span>
+  --openai-api-key <span class="str">sk-team-key</span> <span class="flag">\</span>
+  --model openai/Qwen/Qwen3.6-35B-A3B</pre>
+        <p>Replace the model string with whatever <code class="inline">curl localhost:8000/v1/models</code> returned.</p>
+      </div>
+      <div class="step">
+        <h3>Start your first session</h3>
+        <p>Inside Aider, type:</p>
+        <pre><span class="cmt">/add MASTERPLAN.md PROMPTS.md HANDOVER.md</span>
+Read MASTERPLAN.md and HANDOVER.md, then scaffold the
+correlation agent in correlation_agent.py</pre>
+      </div>
+    </div>
+
+    <div class="callout info" style="margin-top:18px">
+      <span class="big">⚖️</span>
+      <div><strong>Honest expectation:</strong> Aider with an open model is helpful but less reliable than Claude Code. Use it to <strong>scaffold &amp; accelerate</strong>, not to build unattended. Review every change. Keep a human steering.</div>
+    </div>
+  </div>
+
+  <!-- ===== OPTION B: CLAUDE CODE ===== -->
+  <div id="claudecode" style="background:linear-gradient(100deg,#f8f4ff,#fff);border:2px solid var(--violet);border-radius:20px;padding:26px;margin-bottom:28px">
+    <h3 style="color:var(--violet);font-size:1.25rem;margin-bottom:4px">🤖 Option B — Claude Code + AMD vLLM Bridge</h3>
+    <p style="color:#3c3358;font-size:.93rem;margin-bottom:18px">Claude Code redirected to your AMD GPU via a lightweight litellm proxy. Your NOC agents still call <code class="inline">localhost:8000</code> directly — only the coding assistant uses the bridge.</p>
+
+    <div class="callout warn" style="margin-bottom:18px">
+      <span class="big">⚠️</span>
+      <div><strong>Why a proxy?</strong> vLLM speaks OpenAI format. Claude Code expects Anthropic Messages format. <code class="inline">litellm</code> translates between them in one command — no code changes needed on either side.</div>
+    </div>
+
+    <div class="steps">
+      <div class="step">
+        <h3>Confirm the AMD vLLM endpoint is live</h3>
+        <pre><span class="cmt"># Must return JSON with model name before anything else</span>
+curl http://localhost:8000/v1/models
+<span class="cmt"># Note the exact model name — you need it in step 3</span></pre>
+      </div>
+      <div class="step">
+        <h3>Install litellm proxy</h3>
+        <pre>pip install 'litellm[proxy]'</pre>
+      </div>
+      <div class="step">
+        <h3>Start the litellm bridge (dedicated terminal tab)</h3>
+        <p>Open a <strong>new terminal tab</strong> in JupyterLab. Keep this running the whole session.</p>
+        <pre><span class="cmt"># Replace Qwen3-35B with the model name from step 1</span>
+litellm --model openai/Qwen3-35B <span class="flag">\</span>
+  --api_base http://localhost:8000/v1 <span class="flag">\</span>
+  --api_key sk-team-key <span class="flag">\</span>
+  --port 4000
+
+<span class="cmt"># Verify bridge is up:</span>
+curl http://localhost:4000/health</pre>
+      </div>
+      <div class="step">
+        <h3>Point Claude Code at the bridge</h3>
+        <p>Open a <strong>third terminal tab</strong>. Set env vars then launch:</p>
+        <pre><span class="key">export</span> ANTHROPIC_BASE_URL=<span class="str">"http://localhost:4000"</span>
+<span class="key">export</span> ANTHROPIC_API_KEY=<span class="str">"sk-team-key"</span>
+<span class="key">export</span> ANTHROPIC_AUTH_TOKEN=<span class="str">"sk-team-key"</span>
+<span class="key">export</span> ANTHROPIC_DEFAULT_SONNET_MODEL=<span class="str">"Qwen3-35B"</span>
+<span class="key">export</span> ANTHROPIC_DEFAULT_HAIKU_MODEL=<span class="str">"Qwen3-35B"</span>
+<span class="key">export</span> ANTHROPIC_DEFAULT_OPUS_MODEL=<span class="str">"Qwen3-35B"</span>
+<span class="key">export</span> CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS=<span class="str">"1"</span>
+claude</pre>
+        <p style="margin-top:8px">Claude Code now uses Qwen on AMD MI300X as its brain — fully on-prem.</p>
+      </div>
+      <div class="step">
+        <h3>(Optional) Make it permanent via settings.json</h3>
+        <p>So you don't re-export every terminal restart:</p>
+        <pre><span class="cmt"># ~/.claude/settings.json</span>
+{
+  <span class="str">"env"</span>: {
+    <span class="str">"ANTHROPIC_BASE_URL"</span>: <span class="str">"http://localhost:4000"</span>,
+    <span class="str">"ANTHROPIC_API_KEY"</span>: <span class="str">"sk-team-key"</span>,
+    <span class="str">"ANTHROPIC_AUTH_TOKEN"</span>: <span class="str">"sk-team-key"</span>,
+    <span class="str">"ANTHROPIC_DEFAULT_SONNET_MODEL"</span>: <span class="str">"Qwen3-35B"</span>,
+    <span class="str">"ANTHROPIC_DEFAULT_HAIKU_MODEL"</span>: <span class="str">"Qwen3-35B"</span>,
+    <span class="str">"ANTHROPIC_DEFAULT_OPUS_MODEL"</span>: <span class="str">"Qwen3-35B"</span>,
+    <span class="str">"CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS"</span>: <span class="str">"1"</span>
+  }
+}</pre>
+      </div>
+      <div class="step">
+        <h3>Initialise your repo and start building</h3>
+        <pre>mkdir noc-copilot &amp;&amp; cd noc-copilot
+git init
+<span class="cmt"># Drop MASTERPLAN.md, PROMPTS.md, HANDOVER.md here (see below)</span>
+claude</pre>
+        <p>Inside Claude Code, start every session with:</p>
+        <pre><span class="cmt">Read MASTERPLAN.md and HANDOVER.md first, then scaffold
+the LangGraph correlation agent in correlation_agent.py.
+All LLM calls in the app must use base_url=http://localhost:8000/v1</span></pre>
+      </div>
+      <div class="step">
+        <h3>Terminal layout for the full hackathon session</h3>
+        <pre><span class="cmt">Tab 1 → vLLM serving Qwen on :8000  (AMD GPU — already running)</span>
+<span class="cmt">Tab 2 → litellm proxy on :4000      (keep running all session)</span>
+<span class="cmt">Tab 3 → claude                       (Claude Code building your NOC app)</span>
+<span class="cmt">Tab 4 → your app servers             (FastAPI mocks + Gradio)</span></pre>
+      </div>
+    </div>
+
+    <div class="callout tip" style="margin-top:18px">
+      <span class="big">✅</span>
+      <div><strong>Quick sanity check:</strong> after step 4, ask Claude Code "what model are you using?" — it should confirm it's hitting your local endpoint. If it still calls Anthropic's API, double-check <code class="inline">ANTHROPIC_BASE_URL</code> is exported in the same terminal you ran <code class="inline">claude</code> from.</div>
+    </div>
+    <div class="callout info" style="margin-top:14px">
+      <span class="big">🎯</span>
+      <div><strong>NOC agents stay internal regardless.</strong> Claude Code is just your <em>coding assistant</em>. The actual agents your app runs (Correlation, RCA, Remediation) always call <code class="inline">localhost:8000/v1</code> directly — they never touch any external API.</div>
+    </div>
+  </div>
+
+  <!-- ===== OPTION C: DIRECT (no proxy) ===== -->
+  <div style="background:linear-gradient(100deg,#fffaf0,#fff);border:2px solid var(--gold);border-radius:20px;padding:26px;margin-bottom:28px">
+    <h3 style="color:#b87d00;font-size:1.25rem;margin-bottom:4px">⚡ Option C — Claude Code Direct (no proxy, if vLLM supports it)</h3>
+    <p style="color:#3c3358;font-size:.93rem;margin-bottom:18px">Some vLLM builds expose a native <code class="inline">/v1/messages</code> endpoint — the exact Anthropic format Claude Code expects. If AMD's build has this, you skip litellm entirely. <strong>Test this first — it's the cleanest setup if it works.</strong></p>
+
+    <div class="callout pick" style="margin-bottom:18px">
+      <span class="big">🧪</span>
+      <div><strong>Try this before setting up litellm.</strong> Run the test in Step 1. If you get a valid reply → use this option. If you get a 404 or error → fall back to Option B.</div>
+    </div>
+
+    <div class="steps">
+      <div class="step">
+        <h3>Test if vLLM has the Anthropic endpoint</h3>
+        <pre><span class="cmt"># Replace Qwen3-35B with your actual model name from /v1/models</span>
+curl http://localhost:8000/v1/messages <span class="flag">\</span>
+  -H <span class="str">"Content-Type: application/json"</span> <span class="flag">\</span>
+  -H <span class="str">"Authorization: Bearer sk-team-key"</span> <span class="flag">\</span>
+  -d <span class="str">'{"model":"Qwen3-35B","max_tokens":100,"messages":[{"role":"user","content":"hello"}]}'</span>
+
+<span class="cmt"># Got a JSON reply with "content"? → proceed to step 2 (Option C works!)</span>
+<span class="cmt"># Got 404 / connection error?    → use Option B (litellm proxy) instead</span></pre>
+      </div>
+      <div class="step">
+        <h3>Point Claude Code directly at vLLM (no proxy needed)</h3>
+        <p>Since vLLM already speaks Anthropic format, set the base URL straight to port 8000:</p>
+        <pre><span class="key">export</span> ANTHROPIC_BASE_URL=<span class="str">"http://localhost:8000"</span>
+<span class="key">export</span> ANTHROPIC_API_KEY=<span class="str">"sk-team-key"</span>
+<span class="key">export</span> ANTHROPIC_AUTH_TOKEN=<span class="str">"sk-team-key"</span>
+<span class="key">export</span> ANTHROPIC_DEFAULT_SONNET_MODEL=<span class="str">"Qwen3-35B"</span>
+<span class="key">export</span> ANTHROPIC_DEFAULT_HAIKU_MODEL=<span class="str">"Qwen3-35B"</span>
+<span class="key">export</span> ANTHROPIC_DEFAULT_OPUS_MODEL=<span class="str">"Qwen3-35B"</span>
+<span class="key">export</span> CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS=<span class="str">"1"</span>
+claude</pre>
+        <p style="margin-top:8px">Note: <code class="inline">:8000</code> not <code class="inline">:4000</code> — no litellm in the middle.</p>
+      </div>
+      <div class="step">
+        <h3>(Optional) Make it permanent via settings.json</h3>
+        <pre><span class="cmt"># ~/.claude/settings.json</span>
+{
+  <span class="str">"env"</span>: {
+    <span class="str">"ANTHROPIC_BASE_URL"</span>: <span class="str">"http://localhost:8000"</span>,
+    <span class="str">"ANTHROPIC_API_KEY"</span>: <span class="str">"sk-team-key"</span>,
+    <span class="str">"ANTHROPIC_AUTH_TOKEN"</span>: <span class="str">"sk-team-key"</span>,
+    <span class="str">"ANTHROPIC_DEFAULT_SONNET_MODEL"</span>: <span class="str">"Qwen3-35B"</span>,
+    <span class="str">"ANTHROPIC_DEFAULT_HAIKU_MODEL"</span>: <span class="str">"Qwen3-35B"</span>,
+    <span class="str">"ANTHROPIC_DEFAULT_OPUS_MODEL"</span>: <span class="str">"Qwen3-35B"</span>,
+    <span class="str">"CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS"</span>: <span class="str">"1"</span>
+  }
+}</pre>
+      </div>
+      <div class="step">
+        <h3>Terminal layout (simplest of all three options)</h3>
+        <pre><span class="cmt">Tab 1 → vLLM serving Qwen on :8000  (AMD GPU — already running)</span>
+<span class="cmt">Tab 2 → claude                       (Claude Code, hits :8000 directly)</span>
+<span class="cmt">Tab 3 → your app servers             (FastAPI mocks + Gradio)</span></pre>
+      </div>
+    </div>
+
+    <div class="callout tip" style="margin-top:18px">
+      <span class="big">⚡</span>
+      <div><strong>This is the best option if it works.</strong> No extra process, no extra port, no proxy to babysit. One fewer thing to break during the demo.</div>
+    </div>
+  </div>
+
+  <!-- COMPARISON TABLE -->
+  <h3 style="margin:10px 0 14px;color:var(--grape)">⚖️ All three options — quick comparison</h3>
+  <table class="stack" style="margin-bottom:28px">
+    <thead><tr><th>Factor</th><th>🛠️ Option A: Aider</th><th>🤖 Option B: Claude Code + litellm</th><th>⚡ Option C: Claude Code Direct</th></tr></thead>
+    <tbody>
+      <tr><td class="layer">Setup</td><td>1 command, no proxy</td><td>2 commands + litellm proxy</td><td>Test 1 curl, set env vars</td></tr>
+      <tr><td class="layer">Inference</td><td>100% AMD Qwen, fully internal</td><td>AMD Qwen via bridge (NOC agents still internal)</td><td>100% AMD Qwen, no proxy</td></tr>
+      <tr><td class="layer">Code quality</td><td>Good for scaffolding</td><td>Stronger multi-file reasoning</td><td>Stronger multi-file reasoning</td></tr>
+      <tr><td class="layer">External API</td><td><span class="ok">None</span></td><td><span class="pin">litellm local bridge only</span></td><td><span class="ok">None</span></td></tr>
+      <tr><td class="layer">Requires</td><td>Aider installed</td><td>litellm installed + running</td><td>vLLM with /v1/messages support</td></tr>
+      <tr><td class="layer">Best for</td><td>Strict internal-only rules</td><td>Max coding productivity, any vLLM</td><td><span class="ok">Best overall if AMD vLLM supports it</span></td></tr>
+    </tbody>
+  </table>
+
+  <!-- THREE FILES -->
+  <h3 style="margin:18px 0 12px;color:var(--grape)">📂 The three files both agents need</h3>
+  <p class="lede" style="margin-bottom:18px">Keep these in the repo root. Works identically for Aider and Claude Code. They let any agent session understand the project and resume where the last one stopped.</p>
+
+  <div class="grid g3">
+    <div class="filecard">
+      <div class="fname"><span class="dot c-rose"></span>MASTERPLAN.md</div>
+      <p style="font-size:.88rem">The single source of truth. What you're building, the architecture, the agent team, the tech stack, the constraints (internal-only, 1 GPU, 240 GB cap), and the build order. The agent reads this first, every session.</p>
+      <h4>Contains</h4>
+      <ul style="font-size:.85rem;margin-left:16px">
+        <li>Project goal &amp; demo arc</li>
+        <li>Architecture diagram (text)</li>
+        <li>Component list &amp; endpoints</li>
+        <li>Non-negotiable constraints</li>
+        <li>Definition of "done"</li>
+      </ul>
+    </div>
+    <div class="filecard">
+      <div class="fname"><span class="dot c-sky"></span>PROMPTS.md</div>
+      <p style="font-size:.88rem">The actual system prompts for each NOC agent — Correlation, Root Cause, Remediation — plus the output JSON schemas. This is both your app's brain <em>and</em> a spec the coding agent implements against.</p>
+      <h4>Contains</h4>
+      <ul style="font-size:.85rem;margin-left:16px">
+        <li>Per-agent system prompt</li>
+        <li>Expected input / output schema</li>
+        <li>Tool definitions (router, ITSM)</li>
+        <li>Few-shot examples</li>
+      </ul>
+    </div>
+    <div class="filecard">
+      <div class="fname"><span class="dot c-lime"></span>HANDOVER.md</div>
+      <p style="font-size:.88rem">The living progress log. The agent <strong>updates this at the end of each session</strong> so the next day / next session knows what's done and what's left. This is the file that makes multi-session work possible.</p>
+      <h4>Contains</h4>
+      <ul style="font-size:.85rem;margin-left:16px">
+        <li>&#10003; Done / &#x1F504; In progress / &#x2B1C; To do</li>
+        <li>Last working state &amp; how to run it</li>
+        <li>Known issues / blockers</li>
+        <li>Next concrete step</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="callout tip" style="margin-top:22px">
+    <span class="big">📝</span>
+    <div><strong>The handover rule (works for both agents):</strong> end every session by telling the agent "update HANDOVER.md with what we did, the current working state, and the next step." Start every session with "read MASTERPLAN.md and HANDOVER.md before doing anything." That loop is what keeps a multi-day build coherent.</div>
+  </div>
+</section>
+
+<!-- ================= SUGGESTIONS ================= -->
+<section id="suggest">
+  <div class="sec-head"><div class="sec-num c-gold">8</div><h2>My Suggestions (read before you start)</h2></div>
+  <p class="lede">Things that win hackathons and things that quietly sink them.</p>
+
+  <div class="grid g2">
+    <div class="card k-lime">
+      <h3>✅ Do</h3>
+      <ul>
+        <li><strong>Build the scripted storm first.</strong> One root fault → cascade. Rehearse it so it lands every single time.</li>
+        <li><strong>Add a human-approval gate</strong> before destructive actions (router reset). NOC teams care; it shows maturity.</li>
+        <li><strong>Show the correlation visually</strong> — 40 alarms collapsing to 1 is your strongest 5 seconds.</li>
+        <li><strong>Keep a working end-to-end version at all times.</strong> Simple-but-working beats fancy-but-broken at demo o'clock.</li>
+        <li><strong>Lean on the AMD angle:</strong> “local inference on AMD MI300X via ROCm, fully on-prem, no external API” — telecoms love that.</li>
+      </ul>
+    </div>
+    <div class="card k-rose">
+      <h3>🚫 Avoid</h3>
+      <ul>
+        <li><strong>Don't load a model in your notebook</strong> when vLLM already serves one. OOM risk + wasted time.</li>
+        <li><strong>Don't use <code class="inline">share=True</code></strong> on Gradio — it's an external tunnel.</li>
+        <li><strong>Don't attempt real fine-tuning</strong> here — it eats your whole time budget &amp; 25 GB storage. Mention it as roadmap.</li>
+        <li><strong>Don't build all 5 agents before one works end-to-end.</strong> Depth-first, not breadth-first.</li>
+        <li><strong>Don't let the agent build unattended.</strong> Review every change; keep a human steering.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="callout pick">
+    <span class="big">🎯</span>
+    <div><strong>Scope check:</strong> if this is a half-day event, ship Correlation + Root Cause + Remediation + mocks + dashboard. If it's multi-day, add Ingestion, RAG depth, the approval gate, and a polished UI. Either way the storm demo is the centerpiece.</div>
+  </div>
+</section>
+
+<!-- ================= DEMO ================= -->
+<section id="demo">
+  <div class="sec-head"><div class="sec-num c-violet">9</div><h2>The 5-Minute Demo Script</h2></div>
+  <p class="lede">Chaos → calm in under a minute of runtime. Here's the beat sheet for the judges.</p>
+
+  <div class="tl">
+    <div class="tl-item"><span class="when">Minute 1</span><h4>The pain</h4><p>“NOC teams see 500+ alarms an hour and can't keep up — SLAs breach.” One slide, real and short.</p></div>
+    <div class="tl-item"><span class="when">Minute 2</span><h4>The architecture</h4><p>Show the flowchart. Name the agents and what each does. 30 seconds, no code.</p></div>
+    <div class="tl-item"><span class="when">Minute 3</span><h4>Trigger the storm</h4><p>Click “Simulate outage.” Judges watch 40 alarms flood the dashboard — feel the overload.</p></div>
+    <div class="tl-item"><span class="when">Minute 4</span><h4>The wow moment</h4><p>“40 alarms correlated to 1 root cause in seconds → ticket auto-created → router reset pushed → SLA beaten.” Point at each panel as it updates.</p></div>
+    <div class="tl-item"><span class="when">Minute 5</span><h4>The AMD close</h4><p>“All inference runs locally on AMD Instinct MI300X via ROCm — no external API, fully deployable on-prem for telecom operators.” Mic drop.</p></div>
+  </div>
+
+  <div class="callout tip" style="margin-top:24px">
+    <span class="big">🏆</span>
+    <div><strong>The one line that wins:</strong> “Zero human intervention from alarm storm to resolved incident — and it never left the AMD GPU.”</div>
+  </div>
+</section>
+
+</div>
+
+<footer>
+  <div class="rainbow-line"></div>
+  <p><strong>NOC Agentic Copilot</strong> · TCS × AMD Hackathon Battle Plan</p>
+  <p style="opacity:.8;font-size:.85rem;margin-top:6px">Built for AMD Instinct MI300X · ROCm + vLLM · Qwen · LangGraph · Gradio</p>
+  <p style="opacity:.7;font-size:.8rem;margin-top:12px">Start with Step 2: confirm <code style="color:#ffd166">curl localhost:8000/v1/models</code> answers. Everything follows from a live endpoint.</p>
+</footer>
+
+</body>
+</html>
