@@ -1,0 +1,14 @@
+model_list:
+  - model_name: Qwen3-32B
+    litellm_params:
+      model: openai/Qwen/Qwen3-32B
+      api_base: http://localhost:8000/v1
+      api_key: "EMPTY"
+  - model_name: "*"
+    litellm_params:
+      model: openai/Qwen/Qwen3-32B
+      api_base: http://localhost:8000/v1
+      api_key: "EMPTY"
+
+litellm_settings:
+  disable_responses_api: true

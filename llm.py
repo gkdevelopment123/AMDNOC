@@ -14,15 +14,24 @@ client = OpenAI(
 )
 
 def strip_think(text: str) -> str:
-    """Remove the thinking block between 《思考》 and 《回答》 tags"""
-    pattern = r"《思考》.*?《回答》"
+    """Remove the English thinking block between 〈think〉 and 〈/think〉 tags"""
+    pattern = r"〈think〉.*?〈/think〉"
     return re.sub(pattern, "", text, flags=re.DOTALL)
 
 def parse_json(text: str) -> dict:
     """Strip thinking blocks and markdown fences, then parse JSON with one retry"""
-    # First pass: strip thinking blocks and markdown
+    # First pass: extract JSON content between braces
     clean_text = strip_think(text)
-    clean_text = re.sub(r'```json.*?```', '', clean_text, flags=re.DOTALL).strip()
+    # Ensure we have valid content to process
+    if not clean_text:
+        return {"error": "Empty response after stripping"}
+    start_idx = clean_text.find('{')
+    end_idx = clean_text.rfind('}')
+    if start_idx != -1 and end_idx != -1:
+        clean_text = clean_text[start_idx:end_idx+1]
+    else:
+        # Fallback if no braces found
+        clean_text = text
     
     try:
         return json.loads(clean_text)
@@ -38,18 +47,15 @@ def chat(
     thinking: bool = True
 ) -> dict:
     """Send a chat request to vLLM with proper configuration"""
-    extra_body = {}
-    if not thinking:
-        extra_body["chat_template_kwargs"] = {"enable_thinking": False}
-    
-    if response_format:
-        extra_body["response_format"] = response_format
+    extra_body = {
+        "chat_template_kwargs": {"enable_thinking": thinking}
+    }
+    if tools is not None:
+        extra_body["tools"] = tools
 
     return client.chat.completions.create(
         model=MODEL_NAME,
         messages=messages,
-        tools=tools,
-        response_format=response_format,
         extra_body=extra_body
     )
 
