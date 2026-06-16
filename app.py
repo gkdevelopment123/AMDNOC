@@ -313,6 +313,21 @@ footer{{display:none !important}}
   padding:14px 10px 4px;display:flex;align-items:center;gap:8px}}
 .cc-chathead .dot{{width:9px;height:9px;border-radius:50%;background:#10B981;box-shadow:0 0 8px #10B981}}
 .cc-chatsub{{color:#64748B;font-size:.82rem;padding:0 10px 12px}}
+/* ---- chat polish: compact card, capped height, designed look ---- */
+.cc-chathead{{max-width:1280px;margin:18px auto 0;padding:16px 18px 4px}}
+.cc-chatsub{{max-width:1280px;margin:0 auto}}
+#component-0, .gradio-container .gap{{gap:0 !important}}
+div.gradio-container [class*="chat-interface"],
+div.gradio-container .chatbot,
+div.gradio-container [data-testid="chatbot"]{{
+  max-height:420px !important;border-radius:16px !important;
+  border:1px solid #E2E8F5 !important;background:#fff !important;
+  box-shadow:0 10px 30px rgba(80,100,200,.08) !important}}
+.gradio-container .block, .gradio-container .form{{margin-bottom:8px !important}}
+div.gradio-container .bubble-wrap,
+div.gradio-container .message-wrap{{max-height:360px !important;overflow-y:auto !important}}
+.gradio-container .examples, .gradio-container [class*="example"]{{margin-top:6px !important}}
+.gradio-container .chat-interface{{max-width:1280px !important;margin:0 auto !important}}
 .cc-alert{{display:flex;gap:11px;align-items:flex-start;padding:9px 0;border-bottom:1px solid #F1F5FC}}
 .cc-ch{{font-family:'JetBrains Mono';font-size:.6rem;font-weight:700;color:#fff;background:var(--c);
   padding:3px 9px;border-radius:6px;flex:0 0 auto;margin-top:1px}}
@@ -535,6 +550,7 @@ with gr.Blocks(title="NOC Agentic Copilot") as demo:
     approve_btn = gr.Button("\U0001F512 Approve & Execute High-Risk Action", elem_id="apprbtn", visible=False)
     gr.HTML(CHAT_HEAD)
     gr.ChatInterface(fn=copilot,
+                     chatbot=gr.Chatbot(height=320),
                      examples=["Why did this incident happen?",
                                "Is the auto-remediation safe?",
                                "Resolve this ticket and add a note that BGP was restored",
