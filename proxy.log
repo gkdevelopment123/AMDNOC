@@ -868,3 +868,17 @@ INFO:     127.0.0.1:55338 - "POST /clear_bgp HTTP/1.1" 404 Not Found
 INFO:     127.0.0.1:55350 - "POST /clear_bgp HTTP/1.1" 404 Not Found
 INFO:     127.0.0.1:55360 - "POST /restart_interface HTTP/1.1" 404 Not Found
 INFO:     127.0.0.1:55370 - "POST /restart_interface HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:34394 - "GET /docs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54378 - "POST /clear_bgp HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54384 - "POST /clear_bgp HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54396 - "POST /clear_bgp HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:52056 - "GET /docs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:48802 - "POST /clear_bgp HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:48814 - "POST /restart_interface HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:48818 - "POST /restart_interface HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:48832 - "POST /restart_interface HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:50326 - "POST /clear_bgp HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:51422 - "POST /clear_bgp HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:55544 - "GET /docs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35696 - "GET /docs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52564 - "POST /clear_bgp HTTP/1.1" 404 Not Found

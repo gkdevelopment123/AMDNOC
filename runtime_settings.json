@@ -1,0 +1,20 @@
+{
+  "sla_seconds": 180,
+  "notification_recipients": [
+    {
+      "team": "On-call Network Engineer",
+      "channel": "page",
+      "contact": "oncall@telco.example"
+    },
+    {
+      "team": "NOC Tier-2",
+      "channel": "slack",
+      "contact": "#noc-tier2"
+    },
+    {
+      "team": "Engineering Manager",
+      "channel": "email",
+      "contact": "eng-manager@telco.example"
+    }
+  ]
+}

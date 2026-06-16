@@ -253,12 +253,18 @@ Return ONLY JSON:
 
 
 def stage_alert(incident, root_cause, actions, ticket):
+    try:
+        import settings as _settings
+        _recipients = _settings.get_recipients()
+    except Exception:
+        _recipients = []
     payload = {
         "severity": incident.get("severity", ""),
         "affected_devices": incident.get("affected_devices", []),
         "root_cause": root_cause.get("root_cause", ""),
         "actions_taken": [a.get("tool") for a in (actions or [])],
         "ticket_id": (ticket or {}).get("ticket_id", ""),
+        "available_recipients": _recipients,
     }
     return _safe(ask_json,
                  {"severity_assessment": "Critical core outage with downstream customer impact.",

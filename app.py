@@ -12,6 +12,12 @@ from data.alarm_generator import load_topology
 import pipeline
 from llm import chat
 from config import SLA_SECONDS
+import settings as _settings
+
+# === EDIT THIS when your pod session URL changes ===
+PROXY_BASE = "https://notebooks.amd.com/jupyter-hack-team-3049-260614162200-ee4e0c4e/proxy"
+ITSM_BOARD_URL = f"{PROXY_BASE}/8080/"
+ADMIN_URL = f"{PROXY_BASE}/8090/"
 
 LIVE = {"incident": None, "root_cause": None, "remediation": None,
         "actions": None, "ticket": None, "alerts": None, "rag": None, "alarms": None, "elapsed": 0}
@@ -100,7 +106,8 @@ def p_map(alarms, incident):
 
 
 def p_sla(elapsed, active):
-    rem = max(0, SLA_SECONDS - elapsed)
+    sla = _settings.get_sla_seconds()
+    rem = max(0, sla - elapsed)
     breached = rem <= 0
     color = "#F43F7E" if breached else "#10B981"
     label = "SLA BREACHED" if breached else ("WITHIN SLA" if active else "SLA READY")
@@ -280,6 +287,10 @@ footer{{display:none !important}}
   box-shadow:0 16px 44px rgba(99,102,241,.35)}}
 #cc-hero h1{{font-family:'Space Grotesk';font-size:1.6rem;font-weight:700;color:#fff;margin:0;letter-spacing:-.01em}}
 #cc-hero p{{color:#E0E7FF;margin:6px 0 0;font-size:.85rem;font-family:'JetBrains Mono'}}
+.cc-herolinks{{margin-top:12px;display:flex;gap:10px}}
+.cc-herolinks a{{font-family:'Space Grotesk';font-weight:700;font-size:.8rem;color:#fff;background:rgba(255,255,255,.18);padding:7px 14px;border-radius:10px;text-decoration:none;border:1px solid rgba(255,255,255,.25)}}
+.cc-herolinks a:hover{{background:rgba(255,255,255,.30)}}
+.cc-ticklink{{margin-left:auto;font-family:'JetBrains Mono';font-size:.62rem;color:#6366F1;text-decoration:none;font-weight:700}}
 #cc-hero .live{{display:inline-block;width:8px;height:8px;border-radius:50%;background:#6EE7B7;
   margin-right:6px;animation:ccp 1.6s infinite;box-shadow:0 0 8px #6EE7B7}}
 @keyframes ccp{{0%,100%{{opacity:1}}50%{{opacity:.3}}}}
@@ -310,7 +321,9 @@ footer{{display:none !important}}
 """
 
 HERO = ('<div id="cc-hero"><h1>&#128752; Telecom NOC &#183; Agentic Copilot</h1>'
-        '<p><span class="live"></span>LIVE &#183; Qwen3-Coder on AMD Instinct MI300X &#183; multi-agent &#183; 100% on-prem</p></div>')
+        '<p><span class="live"></span>LIVE &#183; Qwen3-Coder on AMD Instinct MI300X &#183; multi-agent &#183; 100% on-prem</p>'
+        f'<div class="cc-herolinks"><a href="{ITSM_BOARD_URL}" target="_blank">&#127915; ITSM Board</a>'
+        f'<a href="{ADMIN_URL}" target="_blank">&#9881;&#65039; Admin Panel</a></div></div>')
 
 CHAT_HEAD = ('<div class="cc-chathead"><span class="dot"></span>Ask the Copilot</div>'
              '<div class="cc-chatsub">Ask about the live incident, or <b>update the ITSM ticket by chat</b> '
