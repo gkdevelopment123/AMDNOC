@@ -1,56 +1,75 @@
 {
-  "devices": [
-    {
-      "id": "router-01",
-      "type": "router",
-      "location": "Data Center A",
-      "status": "online"
+  "devices": {
+    "Router-Core-01": {
+      "type": "core",
+      "site": "DC-North",
+      "role": "Core BGP Router",
+      "upstream": null,
+      "downstream": ["PE-Router-07", "PE-Router-09", "PE-Router-11"]
     },
-    {
-      "id": "switch-01",
+    "PE-Router-07": {
+      "type": "pe",
+      "site": "Metro-East",
+      "role": "Provider Edge Router",
+      "upstream": "Router-Core-01",
+      "downstream": ["Switch-AGG-03", "Switch-AGG-04"]
+    },
+    "PE-Router-09": {
+      "type": "pe",
+      "site": "Metro-West",
+      "role": "Provider Edge Router",
+      "upstream": "Router-Core-01",
+      "downstream": ["Switch-AGG-05", "Switch-AGG-06"]
+    },
+    "PE-Router-11": {
+      "type": "pe",
+      "site": "Metro-South",
+      "role": "Provider Edge Router",
+      "upstream": "Router-Core-01",
+      "downstream": ["Switch-AGG-07"]
+    },
+    "Switch-AGG-03": {
       "type": "switch",
-      "location": "Data Center A",
-      "status": "online"
+      "site": "Metro-East",
+      "role": "Aggregation Switch",
+      "upstream": "PE-Router-07",
+      "downstream": ["BTS-1021", "BTS-1022"]
     },
-    {
-      "id": "server-01",
-      "type": "server",
-      "location": "Data Center B",
-      "status": "online"
+    "Switch-AGG-04": {
+      "type": "switch",
+      "site": "Metro-East",
+      "role": "Aggregation Switch",
+      "upstream": "PE-Router-07",
+      "downstream": ["BTS-1023"]
     },
-    {
-      "id": "firewall-01",
-      "type": "firewall",
-      "location": "Data Center A",
-      "status": "online"
+    "Switch-AGG-05": {
+      "type": "switch",
+      "site": "Metro-West",
+      "role": "Aggregation Switch",
+      "upstream": "PE-Router-09",
+      "downstream": ["BTS-1031", "BTS-1032"]
     },
-    {
-      "id": "loadbalancer-01",
-      "type": "loadbalancer",
-      "location": "Data Center B",
-      "status": "online"
-    }
-  ],
-  "links": [
-    {
-      "from": "router-01",
-      "to": "switch-01",
-      "status": "up"
+    "Switch-AGG-06": {
+      "type": "switch",
+      "site": "Metro-West",
+      "role": "Aggregation Switch",
+      "upstream": "PE-Router-09",
+      "downstream": ["BTS-1033"]
     },
-    {
-      "id": "switch-01",
-      "to": "server-01",
-      "status": "up"
+    "Switch-AGG-07": {
+      "type": "switch",
+      "site": "Metro-South",
+      "role": "Aggregation Switch",
+      "upstream": "PE-Router-11",
+      "downstream": ["BTS-1041", "BTS-1042"]
     },
-    {
-      "from": "router-01",
-      "to": "firewall-01",
-      "status": "up"
-    },
-    {
-      "from": "firewall-01",
-      "to": "loadbalancer-01",
-      "status": "up"
-    }
-  ]
+    "BTS-1021": {"type": "bts", "site": "Metro-East", "role": "Base Station", "upstream": "Switch-AGG-03", "downstream": []},
+    "BTS-1022": {"type": "bts", "site": "Metro-East", "role": "Base Station", "upstream": "Switch-AGG-03", "downstream": []},
+    "BTS-1023": {"type": "bts", "site": "Metro-East", "role": "Base Station", "upstream": "Switch-AGG-04", "downstream": []},
+    "BTS-1031": {"type": "bts", "site": "Metro-West", "role": "Base Station", "upstream": "Switch-AGG-05", "downstream": []},
+    "BTS-1032": {"type": "bts", "site": "Metro-West", "role": "Base Station", "upstream": "Switch-AGG-05", "downstream": []},
+    "BTS-1033": {"type": "bts", "site": "Metro-West", "role": "Base Station", "upstream": "Switch-AGG-06", "downstream": []},
+    "BTS-1041": {"type": "bts", "site": "Metro-South", "role": "Base Station", "upstream": "Switch-AGG-07", "downstream": []},
+    "BTS-1042": {"type": "bts", "site": "Metro-South", "role": "Base Station", "upstream": "Switch-AGG-07", "downstream": []}
+  }
 }

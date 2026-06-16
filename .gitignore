@@ -1,1 +1,27 @@
-.aider*
+# Python caches
+__pycache__/
+*.pyc
+*.pyo
+
+# Jupyter checkpoints
+.ipynb_checkpoints/
+**/.ipynb_checkpoints/
+
+# Logs
+*.log
+proxy.log
+app.log
+
+# Gradio temp
+.gradio/
+
+# ChromaDB (regenerated on run - don't commit the binary DB)
+chroma_db/
+
+# Environment / secrets
+.env
+litellm_config.yaml
+
+# Model cache (never commit weights)
+hf-cache/
+*.safetensors
