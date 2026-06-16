@@ -14,7 +14,7 @@ from llm import chat
 from config import SLA_SECONDS
 
 LIVE = {"incident": None, "root_cause": None, "remediation": None,
-        "actions": None, "ticket": None, "alerts": None, "alarms": None, "elapsed": 0}
+        "actions": None, "ticket": None, "alerts": None, "rag": None, "alarms": None, "elapsed": 0}
 
 SEV = {"CRITICAL": "#F43F7E", "MAJOR": "#FF8A3D", "MINOR": "#FFB020", "WARNING": "#6366F1"}
 
@@ -181,13 +181,33 @@ def p_alerts(alerts):
             f'{rows}{impact}</div>')
 
 
+def p_kb(rag):
+    if not rag or not rag.get("ranked"):
+        return ('<div class="cc-panel"><div class="cc-h">KNOWLEDGE BASE &middot; RAG</div>'
+                '<div class="cc-empty">Awaiting retrieval&#8230;</div></div>')
+    n = rag.get("retrieved", len(rag.get("ranked", [])))
+    rows = ""
+    for idx, r in enumerate(rag.get("ranked", [])[:5]):
+        sc = r.get("score")
+        pct = int((sc if isinstance(sc, (int, float)) else 0) * 100)
+        best = " cc-kbbest" if idx == 0 else ""
+        tag = "BEST MATCH" if idx == 0 else f"#{idx+1}"
+        scoretxt = f"{pct}%" if sc is not None else "&mdash;"
+        rows += (f'<div class="cc-kbrow{best}"><span class="cc-kbtag">{tag}</span>'
+                 f'<span class="cc-kbtitle">{esc(r.get("title",""))}</span>'
+                 f'<span class="cc-kbbar"><span class="cc-kbfill" style="width:{pct}%"></span></span>'
+                 f'<span class="cc-kbscore">{scoretxt}</span></div>')
+    return (f'<div class="cc-panel"><div class="cc-h">KNOWLEDGE BASE &middot; RAG '
+            f'<span class="cc-kbmeta">retrieved {n} &rarr; reranked</span></div>{rows}</div>')
+
+
 def board(alarms=None, incident=None, rc=None, rem=None, actions=None,
-          ticket=None, audit=None, alerts=None, elapsed=0, active=False):
+          ticket=None, audit=None, alerts=None, rag=None, elapsed=0, active=False):
     return f'''
 <div class="cc-root">
   <div class="cc-grid">
     <div class="cc-col-l">{p_alarms(alarms)}</div>
-    <div class="cc-col-c">{p_map(alarms, incident)}{p_sla(elapsed, active)}</div>
+    <div class="cc-col-c">{p_map(alarms, incident)}{p_sla(elapsed, active)}{p_kb(rag)}</div>
     <div class="cc-col-r">{p_rc(rc)}{p_ticket(ticket)}</div>
   </div>
   <div class="cc-grid2">
@@ -279,6 +299,14 @@ footer{{display:none !important}}
 .cc-esc{{margin-left:auto;font-family:'JetBrains Mono';font-size:.6rem;font-weight:700;color:#fff;
   background:#F43F7E;padding:3px 10px;border-radius:99px}}
 .cc-impact{{margin-top:10px;font-size:.8rem;color:#C2410C;background:#FFF4E6;border-radius:8px;padding:8px 12px}}
+.cc-kbmeta{{margin-left:auto;font-family:'JetBrains Mono';font-size:.62rem;color:#7C3AED;background:#F3E8FF;padding:3px 10px;border-radius:99px;font-weight:700}}
+.cc-kbrow{{display:flex;align-items:center;gap:9px;padding:7px 0;border-bottom:1px solid #F1F5FC}}
+.cc-kbtag{{font-family:'JetBrains Mono';font-size:.56rem;font-weight:700;color:#64748B;background:#EEF2FB;padding:2px 7px;border-radius:5px;flex:0 0 auto;min-width:54px;text-align:center}}
+.cc-kbbest .cc-kbtag{{color:#fff;background:linear-gradient(120deg,#6366F1,#10B981)}}
+.cc-kbtitle{{font-size:.8rem;color:#334155;flex:1;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}}
+.cc-kbbar{{width:64px;height:6px;background:#E8EDF8;border-radius:99px;overflow:hidden;flex:0 0 auto}}
+.cc-kbfill{{display:block;height:100%;background:linear-gradient(90deg,#6366F1,#10B981);border-radius:99px}}
+.cc-kbscore{{font-family:'JetBrains Mono';font-size:.72rem;font-weight:700;color:#059669;flex:0 0 auto;min-width:34px;text-align:right}}
 """
 
 HERO = ('<div id="cc-hero"><h1>&#128752; Telecom NOC &#183; Agentic Copilot</h1>'
@@ -290,12 +318,14 @@ CHAT_HEAD = ('<div class="cc-chathead"><span class="dot"></span>Ask the Copilot<
 
 
 def simulate():
-    alarms = incident = rc = rem = actions = ticket = audit = alerts = None
+    alarms = incident = rc = rem = actions = ticket = audit = alerts = rag = None
     start = time.time()
     yield board()
     for stage, payload in pipeline.run_pipeline_streaming():
         if stage == "alarms":
             alarms = payload["alarms"]; LIVE["alarms"] = alarms
+        elif stage == "runbooks":
+            rag = payload.get("rag"); LIVE["rag"] = rag
         elif stage == "incident":
             incident = payload; LIVE["incident"] = incident
         elif stage == "root_cause":
@@ -311,7 +341,7 @@ def simulate():
         elif stage == "done":
             LIVE["elapsed"] = int(time.time() - start)
         elapsed = int(time.time() - start)
-        yield board(alarms, incident, rc, rem, actions, ticket, audit, alerts, elapsed, active=True)
+        yield board(alarms, incident, rc, rem, actions, ticket, audit, alerts, rag, elapsed, active=True)
 
 
 def _try_ticket_update(message):

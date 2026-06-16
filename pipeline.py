@@ -119,9 +119,17 @@ def stage_remediate(root_cause, incident):
                  REMEDIATION_PROMPT, payload, thinking=False)
 
 
+def _runbook_title(text):
+    import re as _re
+    m = _re.search(r"Runbook:\s*([^\]\n]+)", text)
+    return (m.group(1).strip() if m else text[:40].strip())
+
+
 def _rerank_runbooks(incident, candidates):
+    detail = {"retrieved": len(candidates), "ranked": []}
     if len(candidates) <= 1:
-        return candidates
+        detail["ranked"] = [{"title": _runbook_title(c), "score": 1.0} for c in candidates]
+        return candidates, detail
     rerank_prompt = (
         "You are a retrieval reranker for a telecom NOC. Given an incident and candidate "
         "runbook passages, score how well EACH helps diagnose/resolve THIS incident. Return "
@@ -136,32 +144,41 @@ def _rerank_runbooks(incident, candidates):
     }
     try:
         out = ask_json(rerank_prompt, payload, thinking=False)
-        order = [r["index"] for r in out.get("ranking", []) if isinstance(r.get("index"), int)]
+        scored = [(r["index"], float(r.get("score", 0)))
+                  for r in out.get("ranking", []) if isinstance(r.get("index"), int)]
         seen, ordered = set(), []
-        for i in order:
+        for i, sc in scored:
             if 0 <= i < len(candidates) and i not in seen:
                 ordered.append(candidates[i]); seen.add(i)
+                detail["ranked"].append({"title": _runbook_title(candidates[i]), "score": round(sc, 2)})
         for i in range(len(candidates)):
             if i not in seen:
                 ordered.append(candidates[i])
-        return ordered
+                detail["ranked"].append({"title": _runbook_title(candidates[i]), "score": 0.0})
+        return ordered, detail
     except Exception:
-        return candidates
+        detail["ranked"] = [{"title": _runbook_title(c), "score": None} for c in candidates]
+        return candidates, detail
+
+
+LAST_RAG = {"retrieved": 0, "ranked": []}
 
 
 def stage_retrieve_runbooks(incident):
-    """Retrieve a wide candidate set, LLM-rerank it, lead with the best match."""
+    global LAST_RAG
     try:
         from rag.knowledge_base import retrieve_runbooks
         raw = retrieve_runbooks(incident.get("correlation_reason", "BGP failure"), k=5)
         if raw:
             candidates = [c.strip() for c in raw.split("---") if c.strip()]
-            ranked = _rerank_runbooks(incident, candidates)
+            ranked, detail = _rerank_runbooks(incident, candidates)
+            LAST_RAG = detail
             ctx = "\n\n---\n\n".join(ranked[:3])
             if ctx:
                 return ctx
     except Exception:
         pass
+    LAST_RAG = {"retrieved": 0, "ranked": []}
     return (
         "[Runbook: BGP Peer Down] Symptom: BGP session drops, downstream routes withdrawn. "
         "Likely causes: session flap from CPU exhaustion, link failure, or config change. "
@@ -271,7 +288,7 @@ def run_pipeline_streaming(seed=42):
     yield ("incident", incident)
 
     runbooks = stage_retrieve_runbooks(incident)
-    yield ("runbooks", {"context": runbooks})
+    yield ("runbooks", {"context": runbooks, "rag": LAST_RAG})
 
     rc = stage_root_cause(incident, alarms, runbooks)
     yield ("root_cause", rc)
