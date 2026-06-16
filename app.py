@@ -153,11 +153,13 @@ def p_ticket(t):
     if not t:
         return ('<div class="cc-panel"><div class="cc-h">ITSM TICKET</div>'
                 '<div class="cc-empty">No ticket yet.</div></div>')
-    return (f'<div class="cc-panel cc-tick"><div class="cc-h">ITSM TICKET</div>'
+    return (f'<a class="cc-ticklink-wrap" href="{ITSM_BOARD_URL}" target="_blank">'
+            f'<div class="cc-panel cc-tick"><div class="cc-h">ITSM TICKET '
+            f'<span class="cc-ticklink">open board &#8599;</span></div>'
             f'<div class="cc-tid">{esc(t.get("ticket_id",""))}</div>'
             f'<div class="cc-trow"><span class="cc-prio">{esc(t.get("priority",""))}</span>'
             f'<span class="cc-tstat">{esc(t.get("status",""))}</span></div>'
-            f'<div class="cc-turl">{esc(t.get("url",""))}</div></div>')
+            f'<div class="cc-turl">{esc(t.get("url",""))}</div></div></a>')
 
 
 def p_audit(audit):
@@ -277,6 +279,13 @@ footer{{display:none !important}}
 .cc-prio{{background:#FEE2E2;color:#DC2626;padding:2px 10px;border-radius:6px;font-weight:700}}
 .cc-tstat{{background:#DBEAFE;color:#2563EB;padding:2px 10px;border-radius:6px;font-weight:700}}
 .cc-turl{{font-family:'JetBrains Mono';font-size:.7rem;color:#94A3B8}}
+.cc-ticklink-wrap,.cc-ticklink-wrap *{{text-decoration:none !important}}
+.cc-ticklink-wrap .cc-h{{color:#64748B !important}}
+.cc-ticklink-wrap .cc-tid{{color:#059669 !important}}
+.cc-ticklink-wrap .cc-prio{{color:#DC2626 !important;background:#FEE2E2 !important}}
+.cc-ticklink-wrap .cc-tstat{{color:#2563EB !important;background:#DBEAFE !important}}
+.cc-ticklink-wrap .cc-turl{{color:#94A3B8 !important}}
+.cc-ticklink-wrap .cc-ticklink{{color:#6366F1 !important}}
 .cc-auditp{{background:linear-gradient(180deg,#1E1B4B,#312E81)}}
 .cc-auditp .cc-h{{color:#A5B4FC}}
 .cc-aud{{font-family:'JetBrains Mono';font-size:.74rem;color:#C7D2FE;padding:3px 0}}
