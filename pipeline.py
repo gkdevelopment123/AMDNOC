@@ -119,13 +119,47 @@ def stage_remediate(root_cause, incident):
                  REMEDIATION_PROMPT, payload, thinking=False)
 
 
+def _rerank_runbooks(incident, candidates):
+    if len(candidates) <= 1:
+        return candidates
+    rerank_prompt = (
+        "You are a retrieval reranker for a telecom NOC. Given an incident and candidate "
+        "runbook passages, score how well EACH helps diagnose/resolve THIS incident. Return "
+        "ONLY JSON: {\"ranking\":[{\"index\":<int>,\"score\":<0-1>}]} ordered best-first. "
+        "index is the candidate 0-based position."
+    )
+    payload = {
+        "incident": {"root_cause_hint": incident.get("correlation_reason",""),
+                     "severity": incident.get("severity",""),
+                     "affected_devices": incident.get("affected_devices",[])[:5]},
+        "candidates": [{"index": i, "text": c[:600]} for i, c in enumerate(candidates)],
+    }
+    try:
+        out = ask_json(rerank_prompt, payload, thinking=False)
+        order = [r["index"] for r in out.get("ranking", []) if isinstance(r.get("index"), int)]
+        seen, ordered = set(), []
+        for i in order:
+            if 0 <= i < len(candidates) and i not in seen:
+                ordered.append(candidates[i]); seen.add(i)
+        for i in range(len(candidates)):
+            if i not in seen:
+                ordered.append(candidates[i])
+        return ordered
+    except Exception:
+        return candidates
+
+
 def stage_retrieve_runbooks(incident):
-    """Try the RAG module; fall back to inline runbook text."""
+    """Retrieve a wide candidate set, LLM-rerank it, lead with the best match."""
     try:
         from rag.knowledge_base import retrieve_runbooks
-        ctx = retrieve_runbooks(incident.get("correlation_reason", "BGP failure"))
-        if ctx:
-            return ctx
+        raw = retrieve_runbooks(incident.get("correlation_reason", "BGP failure"), k=5)
+        if raw:
+            candidates = [c.strip() for c in raw.split("---") if c.strip()]
+            ranked = _rerank_runbooks(incident, candidates)
+            ctx = "\n\n---\n\n".join(ranked[:3])
+            if ctx:
+                return ctx
     except Exception:
         pass
     return (
@@ -186,6 +220,44 @@ def create_ticket(incident, root_cause, audit_log):
 
 # ---------- Streaming pipeline for the dashboard ----------
 
+ALERTING_PROMPT = """You are the Alerting Agent in a Telecom NOC. Given a resolved/handled
+incident (root cause, severity, affected devices, actions taken, ticket), decide WHO must be
+notified and draft concise alerts. Routing rules:
+- CRITICAL/P1: notify on-call engineer (page), NOC Tier-2, AND engineering manager.
+- MAJOR/P2: notify on-call engineer and NOC Tier-2.
+- MINOR/lower: NOC Tier-1 ticket note only.
+Escalate to management only when customer-facing service (BTS sites) is impacted.
+
+Return ONLY JSON:
+{"severity_assessment":"one line","notify":[{"channel":"page|email|slack|ticket",
+"recipient":"role/team","message":"<=200 chars"}],"escalate_to_management":true|false,
+"customer_impact":"one line"}
+""" + SHARED_RULES
+
+
+def stage_alert(incident, root_cause, actions, ticket):
+    payload = {
+        "severity": incident.get("severity", ""),
+        "affected_devices": incident.get("affected_devices", []),
+        "root_cause": root_cause.get("root_cause", ""),
+        "actions_taken": [a.get("tool") for a in (actions or [])],
+        "ticket_id": (ticket or {}).get("ticket_id", ""),
+    }
+    return _safe(ask_json,
+                 {"severity_assessment": "Critical core outage with downstream customer impact.",
+                  "notify": [
+                      {"channel": "page", "recipient": "On-call Network Engineer",
+                       "message": "P1: Core BGP failure on Router-Core-01, auto-remediation applied. Verify recovery."},
+                      {"channel": "slack", "recipient": "NOC Tier-2",
+                       "message": "Incident auto-handled; review ticket and confirm services restored."},
+                      {"channel": "email", "recipient": "Engineering Manager",
+                       "message": "Customer-facing sites were impacted by a core outage; now mitigated."},
+                  ],
+                  "escalate_to_management": True,
+                  "customer_impact": "Multiple BTS sites lost backhaul; service degraded during outage."},
+                 ALERTING_PROMPT, payload, thinking=False)
+
+
 def run_pipeline_streaming(seed=42):
     """Yield (stage_name, payload) after each stage so the UI can update live."""
     topology = load_topology()
@@ -213,9 +285,14 @@ def run_pipeline_streaming(seed=42):
     ticket = create_ticket(incident, rc, audit_log)
     yield ("ticket", {"ticket": ticket, "audit_log": list(audit_log)})
 
+    alerts = stage_alert(incident, rc, actions, ticket)
+    audit_log.append({"ts": time.strftime("%H:%M:%S"), "action": "alert_dispatch",
+                      "args": {"recipients": len(alerts.get("notify", []))}, "result": "SENT"})
+    yield ("alerts", {"alerts": alerts, "audit_log": list(audit_log)})
+
     yield ("done", {"incident": incident, "root_cause": rc, "remediation": rem,
-                    "actions": actions, "ticket": ticket, "audit_log": audit_log,
-                    "alarm_count": len(alarms)})
+                    "actions": actions, "ticket": ticket, "alerts": alerts,
+                    "audit_log": audit_log, "alarm_count": len(alarms)})
 
 
 def run_pipeline(seed=42):
@@ -244,5 +321,7 @@ if __name__ == "__main__":
             print(f"[execute]     -> {len(payload['actions_taken'])} action(s) run against mock APIs")
         elif stage == "ticket":
             print(f"[ticket]      -> {payload['ticket'].get('ticket_id')} created")
+        elif stage == "alerts":
+            print(f"[alert]       -> {len(payload['alerts'].get('notify', []))} notification(s) dispatched")
         elif stage == "done":
             print("\nPipeline complete. Chaos -> calm.")

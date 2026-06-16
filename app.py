@@ -14,7 +14,7 @@ from llm import chat
 from config import SLA_SECONDS
 
 LIVE = {"incident": None, "root_cause": None, "remediation": None,
-        "actions": None, "ticket": None, "alarms": None, "elapsed": 0}
+        "actions": None, "ticket": None, "alerts": None, "alarms": None, "elapsed": 0}
 
 SEV = {"CRITICAL": "#F43F7E", "MAJOR": "#FF8A3D", "MINOR": "#FFB020", "WARNING": "#6366F1"}
 
@@ -163,8 +163,26 @@ def p_audit(audit):
     return f'<div class="cc-panel cc-auditp"><div class="cc-h">AUDIT LOG</div>{lines}</div>'
 
 
+def p_alerts(alerts):
+    if not alerts:
+        return ('<div class="cc-panel"><div class="cc-h">NOTIFICATIONS</div>'
+                '<div class="cc-empty">No alerts dispatched yet.</div></div>')
+    ch = {"page": "#F43F7E", "email": "#6366F1", "slack": "#10B981", "ticket": "#FF8A3D"}
+    rows = ""
+    for n in alerts.get("notify", []):
+        c = ch.get(n.get("channel", ""), "#6366F1")
+        rows += (f'<div class="cc-alert"><span class="cc-ch" style="--c:{c}">{esc(n.get("channel","").upper())}</span>'
+                 f'<div class="cc-amsg"><b>{esc(n.get("recipient",""))}</b>{esc(n.get("message",""))}</div></div>')
+    esc_badge = ('<span class="cc-esc">&#9650; ESCALATED TO MANAGEMENT</span>'
+                 if alerts.get("escalate_to_management") else "")
+    impact = (f'<div class="cc-impact">Customer impact: {esc(alerts.get("customer_impact",""))}</div>'
+              if alerts.get("customer_impact") else "")
+    return (f'<div class="cc-panel"><div class="cc-h">NOTIFICATIONS {esc_badge}</div>'
+            f'{rows}{impact}</div>')
+
+
 def board(alarms=None, incident=None, rc=None, rem=None, actions=None,
-          ticket=None, audit=None, elapsed=0, active=False):
+          ticket=None, audit=None, alerts=None, elapsed=0, active=False):
     return f'''
 <div class="cc-root">
   <div class="cc-grid">
@@ -176,6 +194,7 @@ def board(alarms=None, incident=None, rc=None, rem=None, actions=None,
     <div>{p_actions(rem, actions)}</div>
     <div>{p_audit(audit)}</div>
   </div>
+  <div style="margin-top:16px">{p_alerts(alerts)}</div>
 </div>'''
 
 
@@ -253,6 +272,13 @@ footer{{display:none !important}}
   padding:14px 10px 4px;display:flex;align-items:center;gap:8px}}
 .cc-chathead .dot{{width:9px;height:9px;border-radius:50%;background:#10B981;box-shadow:0 0 8px #10B981}}
 .cc-chatsub{{color:#64748B;font-size:.82rem;padding:0 10px 12px}}
+.cc-alert{{display:flex;gap:11px;align-items:flex-start;padding:9px 0;border-bottom:1px solid #F1F5FC}}
+.cc-ch{{font-family:'JetBrains Mono';font-size:.6rem;font-weight:700;color:#fff;background:var(--c);
+  padding:3px 9px;border-radius:6px;flex:0 0 auto;margin-top:1px}}
+.cc-amsg{{font-size:.84rem;color:#334155}}.cc-amsg b{{display:block;color:#0F172A;font-size:.8rem;margin-bottom:1px}}
+.cc-esc{{margin-left:auto;font-family:'JetBrains Mono';font-size:.6rem;font-weight:700;color:#fff;
+  background:#F43F7E;padding:3px 10px;border-radius:99px}}
+.cc-impact{{margin-top:10px;font-size:.8rem;color:#C2410C;background:#FFF4E6;border-radius:8px;padding:8px 12px}}
 """
 
 HERO = ('<div id="cc-hero"><h1>&#128752; Telecom NOC &#183; Agentic Copilot</h1>'
@@ -264,7 +290,7 @@ CHAT_HEAD = ('<div class="cc-chathead"><span class="dot"></span>Ask the Copilot<
 
 
 def simulate():
-    alarms = incident = rc = rem = actions = ticket = audit = None
+    alarms = incident = rc = rem = actions = ticket = audit = alerts = None
     start = time.time()
     yield board()
     for stage, payload in pipeline.run_pipeline_streaming():
@@ -280,10 +306,12 @@ def simulate():
             actions = payload["actions_taken"]; audit = payload["audit_log"]; LIVE["actions"] = actions
         elif stage == "ticket":
             ticket = payload["ticket"]; audit = payload["audit_log"]; LIVE["ticket"] = ticket
+        elif stage == "alerts":
+            alerts = payload["alerts"]; audit = payload["audit_log"]; LIVE["alerts"] = alerts
         elif stage == "done":
             LIVE["elapsed"] = int(time.time() - start)
         elapsed = int(time.time() - start)
-        yield board(alarms, incident, rc, rem, actions, ticket, audit, elapsed, active=True)
+        yield board(alarms, incident, rc, rem, actions, ticket, audit, alerts, elapsed, active=True)
 
 
 def _try_ticket_update(message):

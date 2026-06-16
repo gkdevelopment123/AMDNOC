@@ -126,7 +126,7 @@ const PRI={ "P1":"#D5304B","P2":"#E8820B","P3":"#1B95E0","P4":"#5B6B8C" };
 function stateClass(s){return 's-'+(s||'New').replace(/\\s+/g,'');}
 async function load(){
   try{
-    const r=await fetch('/api/tickets'); const t=await r.json();
+    const r=await fetch('api/tickets'); const t=await r.json();
     document.getElementById('cnt').textContent=t.length;
     document.getElementById('rf').textContent='updated '+new Date().toLocaleTimeString();
     const tb=document.getElementById('rows');
@@ -142,7 +142,7 @@ async function load(){
   }catch(e){}
 }
 async function openD(id){
-  const r=await fetch('/api/ticket/'+id); const x=await r.json();
+  const r=await fetch('api/ticket/'+id); const x=await r.json();
   document.getElementById('d_num').textContent=x.number||x.ticket_id;
   document.getElementById('d_title').textContent=x.short_description||x.title||'';
   const cis=(x.affected_devices||[]).map(d=>`<span class=ci>${d}</span>`).join('')||'<span style="color:#8493B3">none</span>';
