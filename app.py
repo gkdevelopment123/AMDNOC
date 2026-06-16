@@ -181,14 +181,14 @@ def board(alarms=None, incident=None, rc=None, rem=None, actions=None,
 
 CSS = f"""
 @import url('{FONTS}');
-.gradio-container{{background:#EEF2FB !important;max-width:100% !important;padding:0 !important}}
+.gradio-container{{background:#EEF2FB !important;max-width:1280px !important;margin:0 auto !important;padding:10px 18px 28px !important}}
 footer{{display:none !important}}
-.cc-root{{font-family:'Inter',sans-serif;color:#1E293B;padding:4px}}
+.cc-root{{font-family:'Inter',sans-serif;color:#1E293B;padding:0;max-width:1280px;margin:0 auto}}
 .cc-grid{{display:grid;grid-template-columns:1fr 1.25fr 1fr;gap:16px;margin-bottom:16px}}
 .cc-grid2{{display:grid;grid-template-columns:1.4fr 1fr;gap:16px}}
 @media(max-width:1000px){{.cc-grid,.cc-grid2{{grid-template-columns:1fr}}}}
 .cc-col-c,.cc-col-r{{display:flex;flex-direction:column;gap:16px}}
-.cc-panel{{background:#FFFFFF;border:1px solid #E2E8F5;border-radius:18px;padding:18px 20px;
+.cc-panel{{background:#FFFFFF;border:1px solid #E2E8F5;border-radius:16px;padding:16px 18px;
   box-shadow:0 10px 30px rgba(80,100,200,.10)}}
 .cc-h{{font-family:'Space Grotesk';font-size:.74rem;letter-spacing:.12em;color:#64748B;
   font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px}}
