@@ -259,8 +259,8 @@ HERO = ('<div id="cc-hero"><h1>&#128752; Telecom NOC &#183; Agentic Copilot</h1>
         '<p><span class="live"></span>LIVE &#183; Qwen3-Coder on AMD Instinct MI300X &#183; multi-agent &#183; 100% on-prem</p></div>')
 
 CHAT_HEAD = ('<div class="cc-chathead"><span class="dot"></span>Ask the Copilot</div>'
-             '<div class="cc-chatsub">Ask about the live incident &#8212; why it happened, '
-             'whether an action is safe, or get a summary for your manager.</div>')
+             '<div class="cc-chatsub">Ask about the live incident, or <b>update the ITSM ticket by chat</b> '
+             '&#8212; e.g. &#8220;resolve this ticket and add a note&#8221;. Changes appear live on the ITSM board (port 8080).</div>')
 
 
 def simulate():
@@ -286,10 +286,63 @@ def simulate():
         yield board(alarms, incident, rc, rem, actions, ticket, audit, elapsed, active=True)
 
 
+def _try_ticket_update(message):
+    """Ask the model to extract a structured ITSM update from the user's message.
+    If one is present, call the mock ITSM API. Returns a confirmation string or None.
+    """
+    import requests
+    from config import ITSM_API_URL
+    from llm import ask_json
+
+    cur = LIVE.get("ticket") or {}
+    cur_id = cur.get("ticket_id", "")
+    extract_prompt = (
+        "You convert a NOC engineer's instruction into an ITSM ticket update.\n"
+        f"The current incident's ticket_id is: {cur_id or 'UNKNOWN'}.\n"
+        "If the message asks to change/update/resolve/close/reassign/reprioritize a ticket or add a "
+        "work note, return JSON: {\"is_update\": true, \"ticket_id\": \"...\", \"status\": null|\"New|In Progress|Resolved|Closed\", "
+        "\"priority\": null|\"P1|P2|P3|P4\", \"assigned_to\": null|\"name\", \"assignment_group\": null|\"group\", "
+        "\"work_note\": null|\"text\"}. Use the current ticket_id if the user doesn't specify one. "
+        "If the message is NOT a ticket update (just a question), return {\"is_update\": false}. "
+        "Return ONLY JSON."
+    )
+    try:
+        intent = ask_json(extract_prompt, message, thinking=False)
+    except Exception:
+        return None
+    if not intent.get("is_update"):
+        return None
+
+    tid = intent.get("ticket_id") or cur_id
+    if not tid:
+        return "I couldn't tell which ticket to update — no active incident ticket yet."
+    body = {"ticket_id": tid}
+    for f in ("status", "priority", "assigned_to", "assignment_group", "work_note"):
+        if intent.get(f):
+            body[f] = intent[f]
+    try:
+        r = requests.post(f"{ITSM_API_URL}/update_ticket", json=body, timeout=5)
+        t = r.json()
+        changed = ", ".join(f"{k}={v}" for k, v in body.items() if k != "ticket_id")
+        # keep LIVE ticket fresh
+        if LIVE.get("ticket"):
+            LIVE["ticket"].update({k: v for k, v in body.items() if k != "ticket_id"})
+        return (f"✅ Updated **{tid}** ({changed}). "
+                f"State is now **{t.get('status','?')}**. The change is live on the ITSM board.")
+    except Exception as e:
+        return f"(couldn't reach ITSM to update {tid}: {e})"
+
+
 def copilot(message, history):
+    # 1) If this is a ticket-update instruction, perform it and confirm.
+    upd = _try_ticket_update(message)
+    if upd:
+        return upd
+    # 2) Otherwise answer as an incident-grounded assistant.
     ctx = {k: LIVE.get(k) for k in ("incident", "root_cause", "remediation", "actions", "ticket")}
     sys = ("You are the NOC Copilot assisting a network operations engineer. Answer concisely "
-           "and practically, grounded ONLY in the current incident context. If no incident has "
+           "and practically, grounded ONLY in the current incident context. You can also update "
+           "ITSM tickets when asked (state, priority, assignment, work notes). If no incident has "
            "run, say so and invite them to trigger an outage simulation.\n\n"
            f"INCIDENT CONTEXT:\n{json.dumps(ctx, indent=2, default=str)}")
     try:
@@ -308,8 +361,8 @@ with gr.Blocks(title="NOC Agentic Copilot") as demo:
     gr.ChatInterface(fn=copilot,
                      examples=["Why did this incident happen?",
                                "Is the auto-remediation safe?",
-                               "Summarize this incident for my manager",
-                               "What should the on-call engineer do next?"])
+                               "Resolve this ticket and add a note that BGP was restored",
+                               "Reassign this incident to the Core Network team and set priority P2"])
     sim.click(simulate, outputs=surface)
 
 
