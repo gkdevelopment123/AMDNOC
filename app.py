@@ -1,266 +1,318 @@
-# app.py - NOC Agentic Copilot dashboard (premium, light-themed, command-center).
-# Wired to the REAL pipeline (pipeline.py). No mock/hardcoded data.
-# Presentation only - all logic lives in pipeline.py and llm.py.
+# app.py - NOC Agentic Copilot :: Command Center (VIBRANT LIGHT EDITION)
+# Entire surface is custom HTML/SVG we control. Wired to the REAL pipeline.
+# Light, colorful, high-contrast, modern. No mock data.
 
 import time
-import io
-import base64
 import json
+import html as _html
 
 import gradio as gr
-import networkx as nx
-import matplotlib
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt
 
 from data.alarm_generator import load_topology
 import pipeline
 from llm import chat
 from config import SLA_SECONDS
 
-# Shared live state for the copilot chat to reference
 LIVE = {"incident": None, "root_cause": None, "remediation": None,
-        "actions": None, "ticket": None, "alarms": None}
+        "actions": None, "ticket": None, "alarms": None, "elapsed": 0}
 
-SEV_COLOR = {"CRITICAL": "#FF3B6B", "MAJOR": "#FF8A3D", "MINOR": "#FFC23D", "WARNING": "#8AA0C8"}
+SEV = {"CRITICAL": "#F43F7E", "MAJOR": "#FF8A3D", "MINOR": "#FFB020", "WARNING": "#6366F1"}
 
-CSS = """
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap');
-.gradio-container{background:#F4F7FE !important;font-family:'Inter',sans-serif !important;max-width:100% !important}
-.gr-block,.gr-box{border-radius:16px !important}
-#hdr{background:linear-gradient(120deg,#4F6BFF,#7A5CFF,#00C2FF);border-radius:18px;padding:20px 26px;margin-bottom:8px;box-shadow:0 12px 32px rgba(79,107,255,.25)}
-#hdr h1{color:#fff;font-family:'Space Grotesk';font-size:1.7rem;margin:0;font-weight:700}
-#hdr p{color:#E6ECFF;margin:4px 0 0;font-size:.9rem}
-.panel{background:#fff;border:1px solid #E4ECF7;border-radius:16px;padding:16px 18px;box-shadow:0 8px 24px rgba(79,107,255,.10)}
-.panel h3{font-family:'Space Grotesk';font-size:1rem;margin:0 0 10px;color:#0F1B2D;display:flex;align-items:center;gap:8px}
-.metric{font-family:'Space Grotesk';font-size:2.2rem;font-weight:700;background:linear-gradient(120deg,#4F6BFF,#00C2FF);-webkit-background-clip:text;background-clip:text;color:transparent;line-height:1}
-.metric-l{font-size:.7rem;text-transform:uppercase;letter-spacing:.08em;color:#5B6B82;font-weight:600}
-.sev-pill{display:inline-block;padding:2px 9px;border-radius:99px;color:#fff;font-size:.7rem;font-weight:700;font-family:'JetBrains Mono';margin:1px}
-.alarm-row{font-family:'JetBrains Mono';font-size:.74rem;padding:3px 0;border-bottom:1px solid #F0F4FA;color:#3C4B63}
-.rc-card{background:linear-gradient(120deg,#F1ECFF,#E2F8FF);border-left:5px solid #7A5CFF;border-radius:0 12px 12px 0;padding:14px 16px}
-.rc-card .cause{font-size:1rem;font-weight:600;color:#0F1B2D;margin-bottom:6px}
-.conf{font-family:'JetBrains Mono';font-weight:700;color:#18C98D}
-.tick{background:linear-gradient(120deg,#E4FAF2,#E2F8FF);border-left:5px solid #18C98D;border-radius:0 12px 12px 0;padding:14px 16px;font-family:'JetBrains Mono';font-size:.85rem}
-.audit{font-family:'JetBrains Mono';font-size:.72rem;color:#5B6B82;background:#0F1B2D;border-radius:10px;padding:10px 12px}
-.audit .ok{color:#5be4b4}
-#simbtn{background:linear-gradient(120deg,#4F6BFF,#7A5CFF) !important;color:#fff !important;font-weight:700 !important;border:none !important;font-size:1rem !important}
-.status-ok{color:#18C98D;font-weight:700}.status-crit{color:#FF3B6B;font-weight:700}
-"""
+FONTS = ("https://fonts.googleapis.com/css2?"
+         "family=Space+Grotesk:wght@500;600;700&"
+         "family=Inter:wght@400;500;600;700&"
+         "family=JetBrains+Mono:wght@400;500;700&display=swap")
 
 
-def render_alarms(alarms):
+def esc(s):
+    return _html.escape(str(s))
+
+
+def svg_storm(alarms):
+    import random
+    random.seed(7)
+    n = len(alarms or [])
+    dots = []
+    for i in range(n):
+        x = 40 + random.random() * 470
+        y = 36 + random.random() * 220
+        dots.append(
+            f'<circle cx="{x:.0f}" cy="{y:.0f}" r="5.5" fill="#F43F7E" opacity="0.85">'
+            f'<animate attributeName="opacity" values="0.45;1;0.45" dur="{1+random.random():.1f}s" '
+            f'repeatCount="indefinite"/></circle>')
+    return (f'<svg viewBox="0 0 550 285" width="100%" height="285">'
+            f'<text x="275" y="22" text-anchor="middle" fill="#F43F7E" '
+            f'font-family="Space Grotesk" font-size="13" font-weight="700">'
+            f'{n} ALARMS &#183; UNCORRELATED STORM</text>{"".join(dots)}</svg>')
+
+
+def svg_incident(incident):
+    import math
+    devs = (incident or {}).get("affected_devices", [])[:18]
+    cx, cy = 275, 155
+    spokes, leaves = [], []
+    for i, d in enumerate(devs):
+        ang = (2 * math.pi * i) / max(1, len(devs))
+        x = cx + 168 * math.cos(ang)
+        y = cy + 96 * math.sin(ang)
+        spokes.append(f'<line x1="{cx}" y1="{cy}" x2="{x:.0f}" y2="{y:.0f}" stroke="#C7D2FE" stroke-width="1.4"/>')
+        leaves.append(
+            f'<circle cx="{x:.0f}" cy="{y:.0f}" r="6.5" fill="#6366F1"/>'
+            f'<text x="{x:.0f}" y="{y-11:.0f}" text-anchor="middle" fill="#64748B" '
+            f'font-family="JetBrains Mono" font-size="7.5">{esc(d[:12])}</text>')
+    hub = (
+        f'<circle cx="{cx}" cy="{cy}" r="48" fill="#10B981" opacity="0.22">'
+        f'<animate attributeName="r" values="44;56;44" dur="2.4s" repeatCount="indefinite"/></circle>'
+        f'<circle cx="{cx}" cy="{cy}" r="32" fill="#10B981"/>'
+        f'<text x="{cx}" y="{cy-1}" text-anchor="middle" fill="#fff" '
+        f'font-family="Space Grotesk" font-size="13" font-weight="700">1</text>'
+        f'<text x="{cx}" y="{cy+13}" text-anchor="middle" fill="#D1FAE5" '
+        f'font-family="Space Grotesk" font-size="7.5" font-weight="600">INCIDENT</text>')
+    return (f'<svg viewBox="0 0 550 305" width="100%" height="305">'
+            f'<text x="275" y="18" text-anchor="middle" fill="#059669" '
+            f'font-family="Space Grotesk" font-size="13" font-weight="700">'
+            f'CORRELATED &#8594; 1 INCIDENT</text>{"".join(spokes)}{"".join(leaves)}{hub}</svg>')
+
+
+def p_alarms(alarms):
     if not alarms:
-        return "<div class='panel'><h3>📡 Alarm Feed</h3><p style='color:#5B6B82'>No alarms. Click Simulate Outage.</p></div>"
+        return ('<div class="cc-panel"><div class="cc-h">ALARM FEED</div>'
+                '<div class="cc-empty">Awaiting outage trigger&#8230;</div></div>')
     counts = {}
     for a in alarms:
         counts[a["severity"]] = counts.get(a["severity"], 0) + 1
-    pills = "".join(f"<span class='sev-pill' style='background:{SEV_COLOR.get(s,'#888')}'>{s} {c}</span>" for s, c in counts.items())
+    chips = "".join(f'<span class="cc-chip" style="--c:{SEV.get(s,"#888")}">{esc(s)} {c}</span>'
+                    for s, c in counts.items())
     rows = "".join(
-        f"<div class='alarm-row'><span style='color:{SEV_COLOR.get(a['severity'],'#888')}'>●</span> "
-        f"{a['timestamp'][11:19]} | {a['device_id']:16} | {a['alarm_type']}</div>"
-        for a in alarms[:18]
-    )
-    more = f"<div class='alarm-row' style='color:#9AABC4'>+ {len(alarms)-18} more…</div>" if len(alarms) > 18 else ""
-    return f"<div class='panel'><h3>📡 Alarm Feed &nbsp;{pills}</h3>{rows}{more}</div>"
+        f'<div class="cc-arow"><i style="background:{SEV.get(a["severity"],"#888")}"></i>'
+        f'<span class="cc-t">{esc(a["timestamp"][11:19])}</span>'
+        f'<span class="cc-dev">{esc(a["device_id"])}</span>'
+        f'<span class="cc-typ">{esc(a["alarm_type"])}</span></div>' for a in alarms[:16])
+    more = (f'<div class="cc-more">+ {len(alarms)-16} more streaming&#8230;</div>' if len(alarms) > 16 else "")
+    return (f'<div class="cc-panel"><div class="cc-h">ALARM FEED <span class="cc-chips">{chips}</span></div>'
+            f'<div class="cc-feed">{rows}{more}</div></div>')
 
 
-def render_graph(alarms, incident=None):
-    """Draw the correlation graph. Before correlation: scattered. After: collapsed to 1 hub."""
-    topo = load_topology()
-    fig, ax = plt.subplots(figsize=(5.2, 4.0), dpi=110)
-    fig.patch.set_facecolor("#FFFFFF")
-    ax.set_facecolor("#FFFFFF")
-    G = nx.Graph()
-
-    if incident:
-        # Collapsed view: incident hub + affected devices
-        hub = "INCIDENT"
-        G.add_node(hub)
-        for d in incident.get("affected_devices", []):
-            G.add_node(d)
-            G.add_edge(hub, d)
-        pos = nx.spring_layout(G, seed=3, k=0.9)
-        node_colors = ["#18C98D" if n == hub else "#4F6BFF" for n in G.nodes()]
-        node_sizes = [1400 if n == hub else 350 for n in G.nodes()]
-        nx.draw_networkx_edges(G, pos, edge_color="#B9C6DE", width=1.5, ax=ax)
-        nx.draw_networkx_nodes(G, pos, node_color=node_colors, node_size=node_sizes, ax=ax)
-        labels = {n: ("✓ 1 INCIDENT" if n == hub else "") for n in G.nodes()}
-        nx.draw_networkx_labels(G, pos, labels, font_size=8, font_weight="bold", font_color="#0F1B2D", ax=ax)
-        ax.set_title("Correlated → 1 incident", fontsize=11, fontweight="bold", color="#18C98D")
-    else:
-        # Storm view: every alarm a separate red node
-        for i, a in enumerate(alarms or []):
-            G.add_node(f"{a['device_id']}-{i}")
-        pos = nx.spring_layout(G, seed=5, k=0.4)
-        nx.draw_networkx_nodes(G, pos, node_color="#FF3B6B", node_size=160, alpha=0.85, ax=ax)
-        ax.set_title(f"{len(alarms or [])} alarms — uncorrelated storm", fontsize=11, fontweight="bold", color="#FF3B6B")
-
-    ax.axis("off")
-    buf = io.BytesIO()
-    plt.tight_layout()
-    plt.savefig(buf, format="png", facecolor="#FFFFFF", bbox_inches="tight")
-    plt.close(fig)
-    buf.seek(0)
-    from PIL import Image
-    return Image.open(buf)
+def p_map(alarms, incident):
+    inner = svg_incident(incident) if incident else (svg_storm(alarms) if alarms
+            else '<div class="cc-empty">No active incident.</div>')
+    return f'<div class="cc-panel cc-map"><div class="cc-h">CORRELATION MAP</div>{inner}</div>'
 
 
-def render_rc(rc):
+def p_sla(elapsed, active):
+    rem = max(0, SLA_SECONDS - elapsed)
+    breached = rem <= 0
+    color = "#F43F7E" if breached else "#10B981"
+    label = "SLA BREACHED" if breached else ("WITHIN SLA" if active else "SLA READY")
+    return (f'<div class="cc-panel cc-sla"><div class="cc-h">SLA TIMER</div>'
+            f'<div class="cc-clock" style="color:{color}">{rem//60:02d}:{rem%60:02d}</div>'
+            f'<div class="cc-slal" style="background:{color}">{label}</div></div>')
+
+
+def p_rc(rc):
     if not rc:
-        return "<div class='panel'><h3>🔍 Root Cause</h3><p style='color:#5B6B82'>Awaiting analysis…</p></div>"
+        return ('<div class="cc-panel"><div class="cc-h">ROOT CAUSE</div>'
+                '<div class="cc-empty">Awaiting analysis&#8230;</div></div>')
     conf = int(rc.get("confidence", 0) * 100)
-    ev = "".join(f"<li>{e}</li>" for e in rc.get("evidence", [])[:4])
-    return (f"<div class='panel'><h3>🔍 Root Cause</h3><div class='rc-card'>"
-            f"<div class='cause'>{rc.get('root_cause','')}</div>"
-            f"<div class='metric-l'>Confidence <span class='conf'>{conf}%</span> · "
-            f"Category: {rc.get('category','?')}</div>"
-            f"<ul style='margin:8px 0 0 16px;font-size:.8rem;color:#3C4B63'>{ev}</ul></div></div>")
+    ev = "".join(f'<li>{esc(e)}</li>' for e in rc.get("evidence", [])[:4])
+    return (f'<div class="cc-panel"><div class="cc-h">ROOT CAUSE '
+            f'<span class="cc-cat">{esc(rc.get("category","?"))}</span></div>'
+            f'<div class="cc-cause">{esc(rc.get("root_cause",""))}</div>'
+            f'<div class="cc-conf"><div class="cc-bar"><div class="cc-fill" style="width:{conf}%"></div></div>'
+            f'<span>{conf}%</span></div>'
+            f'<div class="cc-evh">EVIDENCE</div><ul class="cc-ev">{ev}</ul></div>')
 
 
-def render_actions(rem, actions):
+def p_actions(rem, actions):
     if not rem:
-        return "<div class='panel'><h3>🔧 Remediation &amp; Actions</h3><p style='color:#5B6B82'>Awaiting plan…</p></div>"
-    rows = ""
+        return ('<div class="cc-panel"><div class="cc-h">REMEDIATION</div>'
+                '<div class="cc-empty">Awaiting plan&#8230;</div></div>')
+    rc = {"low": "#10B981", "medium": "#FF8A3D", "high": "#F43F7E"}
+    steps = ""
     for s in rem.get("remediation_plan", []):
         risk = s.get("risk", "low")
-        rc = {"low": "#18C98D", "medium": "#FF8A3D", "high": "#FF3B6B"}.get(risk, "#888")
-        gate = " 🔒 needs approval" if s.get("requires_approval") else " ⚡ auto"
-        rows += (f"<div class='alarm-row'><span class='sev-pill' style='background:{rc}'>{risk}</span> "
-                 f"{s.get('action','')}<span style='color:#9AABC4'>{gate}</span></div>")
-    done = ""
-    for a in (actions or []):
-        st = a.get("result", {}).get("status", "SUCCESS")
-        done += f"<div class='alarm-row'>✅ {a.get('tool')} → <span class='status-ok'>{st}</span></div>"
-    return (f"<div class='panel'><h3>🔧 Remediation &amp; Actions</h3>{rows}"
-            f"<div style='margin-top:8px'>{done}</div></div>")
+        gate = ('<span class="cc-gate cc-appr">&#128274; APPROVAL</span>' if s.get("requires_approval")
+                else '<span class="cc-gate cc-auto">&#9889; AUTO</span>')
+        steps += (f'<div class="cc-step"><span class="cc-risk" style="--c:{rc.get(risk,"#888")}">{esc(risk)}</span>'
+                  f'<span class="cc-act">{esc(s.get("action",""))}</span>{gate}</div>')
+    done = "".join(
+        f'<div class="cc-exec">&#10003; {esc(a.get("tool"))} &#8594; <b>{esc(a.get("result",{}).get("status","SUCCESS"))}</b></div>'
+        for a in (actions or []))
+    return (f'<div class="cc-panel"><div class="cc-h">REMEDIATION &amp; ACTIONS</div>'
+            f'{steps}<div class="cc-execs">{done}</div></div>')
 
 
-def render_ticket(ticket):
-    if not ticket:
-        return "<div class='panel'><h3>🎫 ITSM Ticket</h3><p style='color:#5B6B82'>No ticket yet.</p></div>"
-    return (f"<div class='panel'><h3>🎫 ITSM Ticket</h3><div class='tick'>"
-            f"<b>{ticket.get('ticket_id','')}</b> · {ticket.get('priority','')}<br>"
-            f"Status: {ticket.get('status','')}<br>"
-            f"<span style='color:#5B6B82'>{ticket.get('url','')}</span></div></div>")
+def p_ticket(t):
+    if not t:
+        return ('<div class="cc-panel"><div class="cc-h">ITSM TICKET</div>'
+                '<div class="cc-empty">No ticket yet.</div></div>')
+    return (f'<div class="cc-panel cc-tick"><div class="cc-h">ITSM TICKET</div>'
+            f'<div class="cc-tid">{esc(t.get("ticket_id",""))}</div>'
+            f'<div class="cc-trow"><span class="cc-prio">{esc(t.get("priority",""))}</span>'
+            f'<span class="cc-tstat">{esc(t.get("status",""))}</span></div>'
+            f'<div class="cc-turl">{esc(t.get("url",""))}</div></div>')
 
 
-def render_audit(audit):
+def p_audit(audit):
     if not audit:
-        return "<div class='panel'><h3>🛡️ Audit Log</h3><div class='audit'>No actions yet.</div></div>"
-    lines = "<br>".join(f"{e['ts']} | {e['action']} | <span class='ok'>{e['result']}</span>" for e in audit)
-    return f"<div class='panel'><h3>🛡️ Audit Log</h3><div class='audit'>{lines}</div></div>"
+        return ('<div class="cc-panel cc-auditp"><div class="cc-h">AUDIT LOG</div>'
+                '<div class="cc-empty">No actions logged.</div></div>')
+    lines = "".join(
+        f'<div class="cc-aud"><span>{esc(e["ts"])}</span> {esc(e["action"])} '
+        f'<b>{esc(e["result"])}</b></div>' for e in audit)
+    return f'<div class="cc-panel cc-auditp"><div class="cc-h">AUDIT LOG</div>{lines}</div>'
 
 
-def render_sla(remaining, breached=False):
-    color = "#FF3B6B" if breached else "#18C98D"
-    label = "SLA BREACHED" if breached else "WITHIN SLA"
-    mins = max(0, remaining) // 60
-    secs = max(0, remaining) % 60
-    return (f"<div class='panel' style='text-align:center'><h3 style='justify-content:center'>⏱️ SLA Timer</h3>"
-            f"<div class='metric' style='color:{color};-webkit-text-fill-color:{color}'>{mins:02d}:{secs:02d}</div>"
-            f"<div class='metric-l' style='color:{color}'>{label}</div></div>")
+def board(alarms=None, incident=None, rc=None, rem=None, actions=None,
+          ticket=None, audit=None, elapsed=0, active=False):
+    return f'''
+<div class="cc-root">
+  <div class="cc-grid">
+    <div class="cc-col-l">{p_alarms(alarms)}</div>
+    <div class="cc-col-c">{p_map(alarms, incident)}{p_sla(elapsed, active)}</div>
+    <div class="cc-col-r">{p_rc(rc)}{p_ticket(ticket)}</div>
+  </div>
+  <div class="cc-grid2">
+    <div>{p_actions(rem, actions)}</div>
+    <div>{p_audit(audit)}</div>
+  </div>
+</div>'''
 
 
-def simulate_outage():
-    """Run the real pipeline, yielding UI updates after each stage."""
-    alarms_html = render_alarms(None)
-    graph = render_graph(None)
-    rc_html = render_rc(None)
-    act_html = render_actions(None, None)
-    tick_html = render_ticket(None)
-    audit_html = render_audit(None)
-    sla_html = render_sla(SLA_SECONDS)
+CSS = f"""
+@import url('{FONTS}');
+.gradio-container{{background:#EEF2FB !important;max-width:100% !important;padding:0 !important}}
+footer{{display:none !important}}
+.cc-root{{font-family:'Inter',sans-serif;color:#1E293B;padding:4px}}
+.cc-grid{{display:grid;grid-template-columns:1fr 1.25fr 1fr;gap:16px;margin-bottom:16px}}
+.cc-grid2{{display:grid;grid-template-columns:1.4fr 1fr;gap:16px}}
+@media(max-width:1000px){{.cc-grid,.cc-grid2{{grid-template-columns:1fr}}}}
+.cc-col-c,.cc-col-r{{display:flex;flex-direction:column;gap:16px}}
+.cc-panel{{background:#FFFFFF;border:1px solid #E2E8F5;border-radius:18px;padding:18px 20px;
+  box-shadow:0 10px 30px rgba(80,100,200,.10)}}
+.cc-h{{font-family:'Space Grotesk';font-size:.74rem;letter-spacing:.12em;color:#64748B;
+  font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px}}
+.cc-empty{{color:#94A3B8;font-size:.85rem;padding:20px 0;text-align:center;font-style:italic}}
+.cc-chips{{margin-left:auto;display:flex;gap:5px}}
+.cc-chip{{font-family:'JetBrains Mono';font-size:.62rem;font-weight:700;color:#fff;
+  background:var(--c);padding:3px 9px;border-radius:99px;box-shadow:0 2px 6px rgba(0,0,0,.12)}}
+.cc-feed{{display:flex;flex-direction:column;gap:1px;max-height:300px;overflow:hidden}}
+.cc-arow{{display:flex;align-items:center;gap:9px;font-family:'JetBrains Mono';font-size:.74rem;
+  padding:5px 0;border-bottom:1px solid #F1F5FC}}
+.cc-arow i{{width:8px;height:8px;border-radius:50%;flex:0 0 auto}}
+.cc-t{{color:#94A3B8}}.cc-dev{{color:#334155;min-width:112px;font-weight:500}}.cc-typ{{color:#6366F1;font-weight:500}}
+.cc-more{{color:#94A3B8;font-size:.72rem;padding-top:8px;font-family:'JetBrains Mono'}}
+.cc-map svg{{display:block}}
+.cc-sla{{text-align:center;background:linear-gradient(180deg,#FFFFFF,#F6F9FF)}}
+.cc-clock{{font-family:'JetBrains Mono';font-size:2.8rem;font-weight:700;line-height:1;letter-spacing:.04em}}
+.cc-slal{{display:inline-block;font-family:'Space Grotesk';font-size:.66rem;letter-spacing:.12em;
+  font-weight:700;margin-top:8px;color:#fff;padding:4px 14px;border-radius:99px}}
+.cc-cat{{margin-left:auto;font-family:'JetBrains Mono';font-size:.6rem;color:#7C3AED;
+  background:#F3E8FF;padding:3px 10px;border-radius:99px;text-transform:uppercase;font-weight:700}}
+.cc-cause{{font-size:1.02rem;font-weight:600;color:#0F172A;line-height:1.4;margin-bottom:14px}}
+.cc-conf{{display:flex;align-items:center;gap:12px;margin-bottom:14px}}
+.cc-bar{{flex:1;height:9px;background:#E8EDF8;border-radius:99px;overflow:hidden}}
+.cc-fill{{height:100%;background:linear-gradient(90deg,#6366F1,#10B981);border-radius:99px;transition:width 1s ease}}
+.cc-conf span{{font-family:'JetBrains Mono';font-weight:700;color:#059669;font-size:.92rem}}
+.cc-evh{{font-family:'Space Grotesk';font-size:.62rem;letter-spacing:.12em;color:#94A3B8;font-weight:700;margin-bottom:6px}}
+.cc-ev{{margin:0 0 0 18px;font-size:.82rem;color:#475569;line-height:1.6}}
+.cc-ev li{{margin-bottom:3px}}
+.cc-step{{display:flex;align-items:center;gap:11px;padding:9px 0;border-bottom:1px solid #F1F5FC;font-size:.85rem}}
+.cc-risk{{font-family:'JetBrains Mono';font-size:.6rem;font-weight:700;color:#fff;background:var(--c);
+  padding:3px 9px;border-radius:6px;text-transform:uppercase;flex:0 0 auto;box-shadow:0 2px 6px rgba(0,0,0,.1)}}
+.cc-act{{color:#334155;flex:1;font-weight:500}}
+.cc-gate{{font-family:'JetBrains Mono';font-size:.6rem;font-weight:700;padding:3px 9px;border-radius:6px}}
+.cc-auto{{color:#059669;background:#D1FAE5}}.cc-appr{{color:#C2410C;background:#FFEDD5}}
+.cc-execs{{margin-top:12px;display:flex;flex-direction:column;gap:5px}}
+.cc-exec{{font-family:'JetBrains Mono';font-size:.76rem;color:#059669}}.cc-exec b{{color:#047857}}
+.cc-tick{{background:linear-gradient(135deg,#FFFFFF,#ECFDF5)}}
+.cc-tick .cc-tid{{font-family:'JetBrains Mono';font-size:1.6rem;font-weight:700;color:#059669}}
+.cc-trow{{display:flex;gap:10px;align-items:center;margin:8px 0;font-family:'JetBrains Mono';font-size:.8rem}}
+.cc-prio{{background:#FEE2E2;color:#DC2626;padding:2px 10px;border-radius:6px;font-weight:700}}
+.cc-tstat{{background:#DBEAFE;color:#2563EB;padding:2px 10px;border-radius:6px;font-weight:700}}
+.cc-turl{{font-family:'JetBrains Mono';font-size:.7rem;color:#94A3B8}}
+.cc-auditp{{background:linear-gradient(180deg,#1E1B4B,#312E81)}}
+.cc-auditp .cc-h{{color:#A5B4FC}}
+.cc-aud{{font-family:'JetBrains Mono';font-size:.74rem;color:#C7D2FE;padding:3px 0}}
+.cc-aud b{{color:#6EE7B7}} .cc-aud span{{color:#A78BFA}}
+.cc-auditp .cc-empty{{color:#818CF8}}
+#cc-hero{{background:linear-gradient(120deg,#6366F1,#8B5CF6 45%,#06B6D4);
+  border-radius:20px;padding:24px 28px;margin:6px 4px 16px;
+  box-shadow:0 16px 44px rgba(99,102,241,.35)}}
+#cc-hero h1{{font-family:'Space Grotesk';font-size:1.6rem;font-weight:700;color:#fff;margin:0;letter-spacing:-.01em}}
+#cc-hero p{{color:#E0E7FF;margin:6px 0 0;font-size:.85rem;font-family:'JetBrains Mono'}}
+#cc-hero .live{{display:inline-block;width:8px;height:8px;border-radius:50%;background:#6EE7B7;
+  margin-right:6px;animation:ccp 1.6s infinite;box-shadow:0 0 8px #6EE7B7}}
+@keyframes ccp{{0%,100%{{opacity:1}}50%{{opacity:.3}}}}
+#simbtn{{background:linear-gradient(120deg,#6366F1,#8B5CF6,#06B6D4) !important;color:#fff !important;
+  font-family:'Space Grotesk' !important;font-weight:700 !important;font-size:1.1rem !important;
+  border:none !important;border-radius:16px !important;padding:14px !important;
+  box-shadow:0 10px 30px rgba(99,102,241,.45) !important;transition:transform .15s !important}}
+#simbtn:hover{{transform:translateY(-2px) !important}}
+.cc-chathead{{font-family:'Space Grotesk';font-weight:700;color:#0F172A;font-size:1.05rem;
+  padding:14px 10px 4px;display:flex;align-items:center;gap:8px}}
+.cc-chathead .dot{{width:9px;height:9px;border-radius:50%;background:#10B981;box-shadow:0 0 8px #10B981}}
+.cc-chatsub{{color:#64748B;font-size:.82rem;padding:0 10px 12px}}
+"""
+
+HERO = ('<div id="cc-hero"><h1>&#128752; Telecom NOC &#183; Agentic Copilot</h1>'
+        '<p><span class="live"></span>LIVE &#183; Qwen3-Coder on AMD Instinct MI300X &#183; multi-agent &#183; 100% on-prem</p></div>')
+
+CHAT_HEAD = ('<div class="cc-chathead"><span class="dot"></span>Ask the Copilot</div>'
+             '<div class="cc-chatsub">Ask about the live incident &#8212; why it happened, '
+             'whether an action is safe, or get a summary for your manager.</div>')
+
+
+def simulate():
+    alarms = incident = rc = rem = actions = ticket = audit = None
     start = time.time()
-
+    yield board()
     for stage, payload in pipeline.run_pipeline_streaming():
         if stage == "alarms":
-            LIVE["alarms"] = payload["alarms"]
-            alarms_html = render_alarms(payload["alarms"])
-            graph = render_graph(payload["alarms"])
+            alarms = payload["alarms"]; LIVE["alarms"] = alarms
         elif stage == "incident":
-            LIVE["incident"] = payload
-            graph = render_graph(LIVE["alarms"], payload)
+            incident = payload; LIVE["incident"] = incident
         elif stage == "root_cause":
-            LIVE["root_cause"] = payload
-            rc_html = render_rc(payload)
+            rc = payload; LIVE["root_cause"] = rc
         elif stage == "remediation":
-            LIVE["remediation"] = payload
-            act_html = render_actions(payload, None)
+            rem = payload; LIVE["remediation"] = rem
         elif stage == "actions":
-            LIVE["actions"] = payload["actions_taken"]
-            act_html = render_actions(LIVE["remediation"], payload["actions_taken"])
-            audit_html = render_audit(payload["audit_log"])
+            actions = payload["actions_taken"]; audit = payload["audit_log"]; LIVE["actions"] = actions
         elif stage == "ticket":
-            LIVE["ticket"] = payload["ticket"]
-            tick_html = render_ticket(payload["ticket"])
-            audit_html = render_audit(payload["audit_log"])
+            ticket = payload["ticket"]; audit = payload["audit_log"]; LIVE["ticket"] = ticket
         elif stage == "done":
-            elapsed = int(time.time() - start)
-            sla_html = render_sla(SLA_SECONDS - elapsed, breached=False)
+            LIVE["elapsed"] = int(time.time() - start)
+        elapsed = int(time.time() - start)
+        yield board(alarms, incident, rc, rem, actions, ticket, audit, elapsed, active=True)
 
-        yield alarms_html, graph, rc_html, act_html, tick_html, audit_html, sla_html
 
-
-def copilot_chat(message, history):
-    """Incident-aware chat. Answers grounded in the live pipeline state."""
-    context = {
-        "incident": LIVE.get("incident"),
-        "root_cause": LIVE.get("root_cause"),
-        "remediation": LIVE.get("remediation"),
-        "actions_taken": LIVE.get("actions"),
-        "ticket": LIVE.get("ticket"),
-    }
-    sys = (
-        "You are the NOC Copilot, assisting a network operations engineer. "
-        "Answer concisely and practically, grounded ONLY in the current incident context below. "
-        "If no incident has run yet, say so and invite them to simulate an outage.\n\n"
-        f"CURRENT INCIDENT CONTEXT:\n{json.dumps(context, indent=2, default=str)}"
-    )
+def copilot(message, history):
+    ctx = {k: LIVE.get(k) for k in ("incident", "root_cause", "remediation", "actions", "ticket")}
+    sys = ("You are the NOC Copilot assisting a network operations engineer. Answer concisely "
+           "and practically, grounded ONLY in the current incident context. If no incident has "
+           "run, say so and invite them to trigger an outage simulation.\n\n"
+           f"INCIDENT CONTEXT:\n{json.dumps(ctx, indent=2, default=str)}")
     try:
-        msg = chat(
-            [{"role": "system", "content": sys}, {"role": "user", "content": message}],
-            thinking=False, temperature=0.3, max_tokens=800,
-        )
-        return msg.content.strip()
+        m = chat([{"role": "system", "content": sys}, {"role": "user", "content": message}],
+                 thinking=False, temperature=0.3, max_tokens=700)
+        return m.content.strip()
     except Exception as e:
         return f"(copilot error: {e})"
 
 
 with gr.Blocks(title="NOC Agentic Copilot") as demo:
-    gr.HTML("<div id='hdr'><h1>🛰️ Telecom NOC Agentic Copilot</h1>"
-            "<p>Multi-agent incident response · running on AMD Instinct MI300X · 100% on-prem</p></div>")
-
-    with gr.Row():
-        sim_btn = gr.Button("⚡ Simulate Outage", elem_id="simbtn", scale=2)
-        gr.HTML("<div class='panel' style='padding:10px 16px'><span class='metric-l'>Model</span><br>"
-                "<b style='font-family:JetBrains Mono;font-size:.8rem'>Qwen3-Coder · vLLM · MI300X</b></div>")
-
-    with gr.Row():
-        with gr.Column(scale=3):
-            alarms_out = gr.HTML(render_alarms(None))
-        with gr.Column(scale=4):
-            graph_out = gr.Image(render_graph(None), show_label=False, container=False)
-            sla_out = gr.HTML(render_sla(SLA_SECONDS))
-        with gr.Column(scale=3):
-            rc_out = gr.HTML(render_rc(None))
-            tick_out = gr.HTML(render_ticket(None))
-
-    with gr.Row():
-        with gr.Column(scale=6):
-            act_out = gr.HTML(render_actions(None, None))
-        with gr.Column(scale=4):
-            audit_out = gr.HTML(render_audit(None))
-
-    gr.HTML("<div class='panel'><h3>💬 Ask the Copilot</h3>"
-            "<p style='color:#5B6B82;font-size:.85rem;margin:0'>Ask about the live incident — "
-            "why it happened, whether an action is safe, or a summary for your manager.</p></div>")
-    gr.ChatInterface(fn=copilot_chat,
+    gr.HTML(HERO)
+    sim = gr.Button("\u26a1 Simulate Outage", elem_id="simbtn")
+    surface = gr.HTML(board())
+    gr.HTML(CHAT_HEAD)
+    gr.ChatInterface(fn=copilot,
                      examples=["Why did this incident happen?",
-                               "Is the router reset safe to auto-execute?",
-                               "Summarize this incident for my manager"])
-
-    sim_btn.click(simulate_outage, outputs=[alarms_out, graph_out, rc_out, act_out, tick_out, audit_out, sla_out])
+                               "Is the auto-remediation safe?",
+                               "Summarize this incident for my manager",
+                               "What should the on-call engineer do next?"])
+    sim.click(simulate, outputs=surface)
 
 
 if __name__ == "__main__":
-    demo.queue().launch(server_name="0.0.0.0", server_port=7860, share=True, css=CSS, theme=gr.themes.Soft())
+    demo.queue().launch(server_name="0.0.0.0", server_port=7860, share=True,
+                        css=CSS, theme=gr.themes.Soft())
