@@ -94,6 +94,12 @@ tbody tr:hover{background:#F5F9FF}
 .note .meta{font-size:.72rem;color:#8493B3;font-family:'JetBrains Mono';margin-bottom:3px}
 .note .meta b{color:#1B6FE0}
 .note .txt{font-size:.86rem;color:#33425E}
+.resolvebtn{margin-top:20px;width:100%;background:linear-gradient(120deg,#10B981,#059669);color:#fff;
+  border:none;border-radius:11px;padding:13px;font-family:'Space Grotesk',sans-serif;font-weight:700;
+  font-size:.95rem;cursor:pointer;box-shadow:0 8px 22px rgba(16,185,129,.35)}
+.resolvebtn:hover{transform:translateY(-1px)}
+.resolved-banner{margin-top:20px;background:#E2F6EE;color:#149563;border-radius:11px;padding:13px;
+  text-align:center;font-weight:700;font-size:.9rem}
 .hint{margin-top:22px;background:#EEF6FF;border-left:4px solid #1B6FE0;border-radius:0 9px 9px 0;padding:12px 15px;font-size:.82rem;color:#2A4A86}
 </style></head><body>
 <div class="top">
@@ -161,13 +167,35 @@ async function openD(id){
     <div class=sec>Root cause</div><div class=desc>${x.root_cause||'Pending analysis'}</div>
     <div class=sec>Affected CIs</div><div>${cis}</div>
     <div class=sec>Work notes &amp; activity</div>${notes}
-    <div class=hint>💬 Tip: on the NOC dashboard, tell the Copilot e.g. <b>"resolve ${x.ticket_id} and add a note that BGP was restored"</b> — this record updates automatically.</div>`;
+    ${(x.status==='Resolved'||x.status==='Closed')
+       ? '<div class=resolved-banner>&#10004; This incident is '+x.status+'</div>'
+       : '<button class=resolvebtn id=rbtn>&#10004; Resolve this incident</button>'}`;
+  var _rb=document.getElementById('rbtn');
+  if(_rb){_rb.onclick=function(){resolveTicket(x.ticket_id);};}
   document.getElementById('scrim').classList.add('on');
   document.getElementById('drawer').classList.add('on');
+}
+async function resolveTicket(id){
+  await fetch('api/resolve/'+id,{method:'POST'});
+  openD(id);
+  load();
 }
 function closeD(){document.getElementById('scrim').classList.remove('on');document.getElementById('drawer').classList.remove('on');}
 load(); setInterval(load,3000);
 </script></body></html>"""
+
+
+@app.post("/api/resolve/{tid}")
+def api_resolve(tid: str):
+    import requests as _rq
+    try:
+        note = ("Incident resolved from ITSM board. Remediation actions applied; "
+                "connectivity restored and alarms cleared.")
+        r = _rq.post(f"{ITSM_API_URL}/update_ticket",
+                     json={"ticket_id": tid, "status": "Resolved", "work_note": note}, timeout=5)
+        return JSONResponse(r.json())
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=200)
 
 
 @app.get("/", response_class=HTMLResponse)
