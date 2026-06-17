@@ -74,7 +74,35 @@ def parse_json(text: str):
             )
 
 
-def chat(messages, tools=None, thinking=False, temperature=0.3, max_tokens=4000):
+TOKEN_USAGE = {"calls": 0, "prompt": 0, "completion": 0, "total": 0, "by_agent": {}}
+
+
+def _log_usage(resp, agent="chat"):
+    try:
+        u = resp.usage
+        TOKEN_USAGE["calls"] += 1
+        TOKEN_USAGE["prompt"] += u.prompt_tokens
+        TOKEN_USAGE["completion"] += u.completion_tokens
+        TOKEN_USAGE["total"] += u.total_tokens
+        a = TOKEN_USAGE["by_agent"].setdefault(agent, {"calls": 0, "prompt": 0, "completion": 0, "total": 0})
+        a["calls"] += 1; a["prompt"] += u.prompt_tokens
+        a["completion"] += u.completion_tokens; a["total"] += u.total_tokens
+        print(f"[tokens] {agent:14s} prompt={u.prompt_tokens:6d} completion={u.completion_tokens:6d} "
+              f"total={u.total_tokens:6d} | session total={TOKEN_USAGE['total']}", flush=True)
+    except Exception:
+        pass
+
+
+def token_summary():
+    lines = ["=== TOKEN USAGE (this session) ==="]
+    for ag, v in TOKEN_USAGE["by_agent"].items():
+        lines.append(f"  {ag:14s} {v['calls']:3d} calls  {v['total']:7d} tokens "
+                     f"(in {v['prompt']}, out {v['completion']})")
+    lines.append(f"  {'TOTAL':14s} {TOKEN_USAGE['calls']:3d} calls  {TOKEN_USAGE['total']:7d} tokens")
+    return "\n".join(lines)
+
+
+def chat(messages, tools=None, thinking=False, temperature=0.3, max_tokens=4000, agent="chat"):
     """Send a chat request to the local vLLM and return the message object.
 
     thinking=False is the default: faster and cleaner JSON for agent work.
@@ -94,10 +122,11 @@ def chat(messages, tools=None, thinking=False, temperature=0.3, max_tokens=4000)
         kwargs["tool_choice"] = "auto"
 
     resp = client.chat.completions.create(**kwargs)
+    _log_usage(resp, agent)
     return resp.choices[0].message
 
 
-def ask_json(system_prompt, user_payload, thinking=False, temperature=0.2):
+def ask_json(system_prompt, user_payload, thinking=False, temperature=0.2, agent="chat"):
     """Convenience: send a system + user(JSON) message, return parsed JSON dict.
 
     user_payload may be a dict (auto-serialised) or a string.
@@ -114,6 +143,7 @@ def ask_json(system_prompt, user_payload, thinking=False, temperature=0.2):
         ],
         thinking=thinking,
         temperature=temperature,
+        agent=agent,
     )
     return parse_json(msg.content)
 

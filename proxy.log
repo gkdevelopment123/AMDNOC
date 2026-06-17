@@ -980,3 +980,5 @@ INFO:     127.0.0.1:39838 - "POST /clear_bgp HTTP/1.1" 404 Not Found
 INFO:     127.0.0.1:57984 - "GET /docs HTTP/1.1" 200 OK
 INFO:     127.0.0.1:35116 - "POST /clear_bgp HTTP/1.1" 404 Not Found
 INFO:     127.0.0.1:43798 - "POST /clear_bgp HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:32920 - "GET /docs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52036 - "POST /clear_bgp HTTP/1.1" 404 Not Found

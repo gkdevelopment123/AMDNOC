@@ -78,7 +78,7 @@ def _safe(fn, fallback, *args, **kwargs):
 
 def stage_correlate(alarms, topology):
     payload = {"alarms": alarms, "topology": topology}
-    result = ask_json(CORRELATION_PROMPT, payload, thinking=False)
+    result = ask_json(CORRELATION_PROMPT, payload, thinking=False, agent="correlation")
     incidents = result.get("incidents", [])
     if not incidents:
         # deterministic fallback so the demo always has an incident
@@ -102,7 +102,7 @@ def stage_root_cause(incident, alarms, runbook_context):
                   "evidence": ["Root BGP_PEER_DOWN on core", "Downstream cascade"],
                   "category": "software",
                   "summary_for_ticket": "Core router BGP failure isolated downstream sites."},
-                 ROOT_CAUSE_PROMPT, payload, thinking=False)
+                 ROOT_CAUSE_PROMPT, payload, thinking=False, agent="root-cause")
 
 
 def stage_remediate(root_cause, incident):
@@ -116,7 +116,7 @@ def stage_remediate(root_cause, incident):
                      "rationale": "Least-invasive recovery for a BGP flap."}],
                   "auto_executable_steps": [1], "approval_required_steps": [],
                   "manual_fallback": "Escalate to Tier-3 if session does not recover."},
-                 REMEDIATION_PROMPT, payload, thinking=False)
+                 REMEDIATION_PROMPT, payload, thinking=False, agent="remediation")
 
 
 def _runbook_title(text):
@@ -143,7 +143,7 @@ def _rerank_runbooks(incident, candidates):
         "candidates": [{"index": i, "text": c[:600]} for i, c in enumerate(candidates)],
     }
     try:
-        out = ask_json(rerank_prompt, payload, thinking=False)
+        out = ask_json(rerank_prompt, payload, thinking=False, agent="rag-rerank")
         scored = [(r["index"], float(r.get("score", 0)))
                   for r in out.get("ranking", []) if isinstance(r.get("index"), int)]
         seen, ordered = set(), []
@@ -278,7 +278,7 @@ def stage_alert(incident, root_cause, actions, ticket):
                   ],
                   "escalate_to_management": True,
                   "customer_impact": "Multiple BTS sites lost backhaul; service degraded during outage."},
-                 ALERTING_PROMPT, payload, thinking=False)
+                 ALERTING_PROMPT, payload, thinking=False, agent="alerting")
 
 
 def run_pipeline_streaming(seed=42, scenario="p1"):

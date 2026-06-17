@@ -416,7 +416,7 @@ def _try_ticket_update(message):
         "Return ONLY JSON."
     )
     try:
-        intent = ask_json(extract_prompt, message, thinking=False)
+        intent = ask_json(extract_prompt, message, thinking=False, agent="chat-intent")
     except Exception:
         return None
     if not intent.get("is_update"):
@@ -589,7 +589,7 @@ def copilot(message, history):
            f"INCIDENT CONTEXT:\n{json.dumps(ctx, indent=2, default=str)}")
     try:
         m = chat([{"role": "system", "content": sys}, {"role": "user", "content": message}],
-                 thinking=False, temperature=0.3, max_tokens=700)
+                 thinking=False, temperature=0.3, max_tokens=700, agent="chat-copilot")
         return m.content.strip()
     except Exception as e:
         return f"(copilot error: {e})"
