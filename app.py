@@ -21,6 +21,7 @@ ADMIN_URL = f"{PROXY_BASE}/8090/"
 
 LIVE = {"incident": None, "root_cause": None, "remediation": None,
         "actions": None, "ticket": None, "alerts": None, "rag": None, "alarms": None, "elapsed": 0}
+SIMULATING = {"active": False}
 
 SEV = {"CRITICAL": "#F43F7E", "MAJOR": "#FF8A3D", "MINOR": "#FFB020", "WARNING": "#6366F1"}
 
@@ -358,6 +359,7 @@ CHAT_HEAD = ('<div class="cc-chathead"><span class="dot"></span>Ask the Copilot<
 def simulate():
     alarms = incident = rc = rem = actions = ticket = audit = alerts = rag = None
     start = time.time()
+    SIMULATING["active"] = True
     yield board(), gr.update(visible=False)
     for stage, payload in pipeline.run_pipeline_streaming():
         if stage == "alarms":
@@ -378,6 +380,7 @@ def simulate():
             alerts = payload["alerts"]; audit = payload["audit_log"]; LIVE["alerts"] = alerts
         elif stage == "done":
             LIVE["elapsed"] = int(time.time() - start)
+            SIMULATING["active"] = False
         elapsed = int(time.time() - start)
         LIVE['audit_log'] = audit
         show_btn = any(st.get('requires_approval') for st in (rem or {}).get('remediation_plan', [])) if rem else False
@@ -543,6 +546,15 @@ def copilot(message, history):
         return f"(copilot error: {e})"
 
 
+def _idle_refresh():
+    if SIMULATING.get("active"):
+        return gr.update()
+    return board(LIVE.get("alarms"), LIVE.get("incident"), LIVE.get("root_cause"),
+                 LIVE.get("remediation"), LIVE.get("actions"), LIVE.get("ticket"),
+                 LIVE.get("audit_log"), LIVE.get("alerts"), LIVE.get("rag"),
+                 LIVE.get("elapsed", 0), active=False)
+
+
 with gr.Blocks(title="NOC Agentic Copilot") as demo:
     gr.HTML(HERO)
     sim = gr.Button("\u26a1 Simulate Outage", elem_id="simbtn")
@@ -556,6 +568,8 @@ with gr.Blocks(title="NOC Agentic Copilot") as demo:
                                "Resolve this ticket and add a note that BGP was restored",
                                "Reassign this incident to the Core Network team and set priority P2",
                                "Mark this incident resolved with a resolution note"])
+    _timer = gr.Timer(3)
+    _timer.tick(_idle_refresh, outputs=surface)
     sim.click(simulate, outputs=[surface, approve_btn])
     approve_btn.click(approve_and_execute, outputs=[surface, approve_btn])
 

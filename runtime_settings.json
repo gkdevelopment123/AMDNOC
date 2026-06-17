@@ -1,5 +1,5 @@
 {
-  "sla_seconds": 180,
+  "sla_seconds": 240,
   "notification_recipients": [
     {
       "team": "On-call Network Engineer",
