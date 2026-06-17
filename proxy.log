@@ -967,3 +967,6 @@ INFO:     127.0.0.1:58252 - "POST /clear_bgp HTTP/1.1" 404 Not Found
 INFO:     127.0.0.1:58256 - "POST /clear_bgp HTTP/1.1" 404 Not Found
 INFO:     127.0.0.1:58268 - "POST /clear_bgp HTTP/1.1" 404 Not Found
 INFO:     127.0.0.1:34788 - "POST /reset_router HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:58302 - "GET /docs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52570 - "POST /clear_bgp HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:43108 - "POST /clear_bgp HTTP/1.1" 404 Not Found

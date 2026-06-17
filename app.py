@@ -315,6 +315,8 @@ footer{{display:none !important}}
   border:none !important;border-radius:16px !important;padding:14px !important;
   box-shadow:0 10px 30px rgba(99,102,241,.45) !important;transition:transform .15s !important}}
 #simbtn:hover{{transform:translateY(-2px) !important}}
+#simrand{{background:linear-gradient(120deg,#0EA5E9,#6366F1) !important;color:#fff !important;font-family:'Space Grotesk' !important;font-weight:700 !important;font-size:.95rem !important;border:none !important;border-radius:14px !important;padding:11px !important;margin-top:8px !important;box-shadow:0 8px 24px rgba(14,165,233,.32) !important}}
+#simrand:hover{{transform:translateY(-2px) !important}}
 #apprbtn{{background:linear-gradient(120deg,#FF8A3D,#F43F7E) !important;color:#fff !important;font-family:'Space Grotesk' !important;font-weight:700 !important;font-size:1rem !important;border:none !important;border-radius:14px !important;padding:12px !important;box-shadow:0 10px 30px rgba(244,63,126,.4) !important;margin-top:8px !important}}
 .cc-chathead{{font-family:'Space Grotesk';font-weight:700;color:#0F172A;font-size:1.05rem;
   padding:14px 10px 4px;display:flex;align-items:center;gap:8px}}
@@ -362,12 +364,12 @@ CHAT_HEAD = ('<div class="cc-chathead"><span class="dot"></span>Ask the Copilot<
              '&#8212; e.g. &#8220;resolve this ticket and add a note&#8221;. Changes appear live on the ITSM board (port 8080).</div>')
 
 
-def simulate():
+def _run_sim(scenario="p1"):
     alarms = incident = rc = rem = actions = ticket = audit = alerts = rag = None
     start = time.time()
     SIMULATING["active"] = True
     yield board(), gr.update(visible=False), p_alerts(None)
-    for stage, payload in pipeline.run_pipeline_streaming():
+    for stage, payload in pipeline.run_pipeline_streaming(scenario=scenario):
         if stage == "alarms":
             alarms = payload["alarms"]; LIVE["alarms"] = alarms
         elif stage == "runbooks":
@@ -532,6 +534,14 @@ def _is_resolution_confirm(message):
     return False
 
 
+def simulate():
+    yield from _run_sim("p1")
+
+
+def simulate_random():
+    yield from _run_sim("random")
+
+
 def copilot(message, history):
     if _is_resolution_confirm(message):
         return _resolve_ticket()
@@ -563,7 +573,8 @@ def _idle_refresh():
 
 with gr.Blocks(title="NOC Agentic Copilot") as demo:
     gr.HTML(HERO)
-    sim = gr.Button("\u26a1 Simulate Outage", elem_id="simbtn")
+    sim = gr.Button("\u26a1 Simulate P1 Outage (Critical)", elem_id="simbtn")
+    sim_rand = gr.Button("\U0001F3B2 Simulate Random Incident", elem_id="simrand")
     surface = gr.HTML(board())
     approve_btn = gr.Button("\U0001F512 Approve & Execute High-Risk Action", elem_id="apprbtn", visible=False)
     notif = gr.HTML(p_alerts(None))
@@ -578,6 +589,7 @@ with gr.Blocks(title="NOC Agentic Copilot") as demo:
     _timer = gr.Timer(3)
     _timer.tick(_idle_refresh, outputs=surface)
     sim.click(simulate, outputs=[surface, approve_btn, notif])
+    sim_rand.click(simulate_random, outputs=[surface, approve_btn, notif])
     approve_btn.click(approve_and_execute, outputs=[surface, approve_btn, notif])
 
 

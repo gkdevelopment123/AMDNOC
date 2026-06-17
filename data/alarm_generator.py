@@ -119,6 +119,62 @@ def generate_storm(seed=42):
     return alarms
 
 
+def generate_scenario(scenario="p1", seed=None):
+    import random as _r
+    if seed is not None:
+        _r.seed(seed)
+    if scenario == "p1":
+        return generate_storm(seed=seed if seed is not None else 42)
+    topo = load_topology()
+    t0 = datetime(2026, 6, 16, 9, 0, 0)
+    pe = [d for d in topo["devices"] if topo["devices"][d]["type"] == "pe"]
+    sw = [d for d in topo["devices"] if topo["devices"][d]["type"] == "switch"]
+    bts = [d for d in topo["devices"] if topo["devices"][d]["type"] == "bts"]
+    alts = {
+        "fiber_cut": {"root_dev": (_r.choice(pe) if pe else "PE-Router-07"),
+            "root_type": "LINK_DOWN", "root_sev": "MAJOR",
+            "root_desc": "Fiber uplink cut detected; interface down, no carrier signal",
+            "root_kpis": {"cpu": 30, "packet_loss": 100, "latency_ms": 0},
+            "child_type": "PACKET_LOSS", "child_sev": "MINOR",
+            "child_desc": "Increased packet loss on rerouted path"},
+        "cpu_exhaustion": {"root_dev": (_r.choice(sw) if sw else "Switch-AGG-03"),
+            "root_type": "HIGH_CPU", "root_sev": "MAJOR",
+            "root_desc": "Control-plane CPU sustained at 97%; forwarding degraded",
+            "root_kpis": {"cpu": 97, "packet_loss": 15, "latency_ms": 220},
+            "child_type": "HIGH_LATENCY", "child_sev": "MINOR",
+            "child_desc": "Latency rising on switched paths due to CPU saturation"},
+        "bts_sync": {"root_dev": (_r.choice(bts) if bts else "BTS-1021"),
+            "root_type": "SYNC_LOSS", "root_sev": "MINOR",
+            "root_desc": "Loss of timing synchronisation at cell site; GPS reference unstable",
+            "root_kpis": {"cpu": 18, "packet_loss": 5, "latency_ms": 60},
+            "child_type": "SERVICE_DEGRADED", "child_sev": "MINOR",
+            "child_desc": "Minor service degradation at single cell site"},
+        "port_flap": {"root_dev": (_r.choice(sw) if sw else "Switch-AGG-04"),
+            "root_type": "INTERFACE_FLAP", "root_sev": "MINOR",
+            "root_desc": "Access port flapping repeatedly; intermittent link",
+            "root_kpis": {"cpu": 25, "packet_loss": 8, "latency_ms": 40},
+            "child_type": "HIGH_LATENCY", "child_sev": "MINOR",
+            "child_desc": "Brief latency spikes during flap events"},
+    }
+    if scenario == "random":
+        scenario = _r.choice(list(alts.keys()))
+    cfg = alts.get(scenario, alts["fiber_cut"])
+    alarms = []; n = 1
+    alarms.append(_alarm(f"ALM-{n:03d}", t0, cfg["root_dev"], topo,
+                         cfg["root_type"], cfg["root_sev"], cfg["root_desc"], cfg["root_kpis"]))
+    n += 1
+    neighbours = (topo["devices"][cfg["root_dev"]].get("downstream") or [])[:4]
+    for dev in neighbours:
+        off = _r.randint(5, 25)
+        alarms.append(_alarm(f"ALM-{n:03d}", t0 + timedelta(seconds=off), dev, topo,
+                             cfg["child_type"], cfg["child_sev"], cfg["child_desc"],
+                             {"cpu": _r.randint(20, 60), "packet_loss": _r.randint(5, 40),
+                              "latency_ms": _r.randint(40, 300)}))
+        n += 1
+    alarms.sort(key=lambda a: a["timestamp"])
+    return alarms
+
+
 def generate_normal_alarms(n=5, seed=None):
     """A few unrelated, low-priority alarms (no common root) for contrast."""
     if seed is not None:

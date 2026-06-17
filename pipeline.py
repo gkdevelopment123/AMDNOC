@@ -10,7 +10,7 @@ import os
 import time
 
 from llm import ask_json
-from data.alarm_generator import generate_storm, load_topology
+from data.alarm_generator import generate_storm, generate_scenario, load_topology
 
 # ---- Tool definitions passed to the remediation agent ----
 TOOLS = [
@@ -281,10 +281,10 @@ def stage_alert(incident, root_cause, actions, ticket):
                  ALERTING_PROMPT, payload, thinking=False)
 
 
-def run_pipeline_streaming(seed=42):
+def run_pipeline_streaming(seed=42, scenario="p1"):
     """Yield (stage_name, payload) after each stage so the UI can update live."""
     topology = load_topology()
-    alarms = generate_storm(seed=seed)
+    alarms = generate_storm(seed=seed) if scenario == "p1" else generate_scenario(scenario, seed=seed)
     audit_log = []
 
     yield ("alarms", {"alarms": alarms, "count": len(alarms),
