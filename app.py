@@ -224,7 +224,6 @@ def board(alarms=None, incident=None, rc=None, rem=None, actions=None,
     <div>{p_actions(rem, actions)}</div>
     <div>{p_audit(audit)}</div>
   </div>
-  <div style="margin-top:16px">{p_alerts(alerts)}</div>
 </div>'''
 
 
@@ -237,6 +236,13 @@ footer{{display:none !important}}
 .cc-grid2{{display:grid;grid-template-columns:1.4fr 1fr;gap:16px}}
 @media(max-width:1000px){{.cc-grid,.cc-grid2{{grid-template-columns:1fr}}}}
 .cc-col-c,.cc-col-r{{display:flex;flex-direction:column;gap:16px}}
+.cc-col-l{{display:flex;flex-direction:column;gap:16px}}
+.cc-col-l>div{{flex:1}}
+.cc-col-l .cc-panel{{height:100%;display:flex;flex-direction:column}}
+#cc-hero{{padding-bottom:18px !important}}
+.cc-panel{{box-shadow:0 8px 24px rgba(90,110,200,.07) !important}}
+.cc-empty{{display:flex;align-items:center;justify-content:center;min-height:60px}}
+.cc-grid{{align-items:stretch}}
 .cc-panel{{background:#FFFFFF;border:1px solid #E2E8F5;border-radius:16px;padding:16px 18px;
   box-shadow:0 10px 30px rgba(80,100,200,.10)}}
 .cc-h{{font-family:'Space Grotesk';font-size:.74rem;letter-spacing:.12em;color:#64748B;
@@ -347,7 +353,7 @@ div.gradio-container .message-wrap{{max-height:360px !important;overflow-y:auto 
 """
 
 HERO = ('<div id="cc-hero"><h1>&#128752; Telecom NOC &#183; Agentic Copilot</h1>'
-        '<p><span class="live"></span>LIVE &#183; Qwen3-Coder on AMD Instinct MI300X &#183; multi-agent &#183; 100% on-prem</p>'
+        '<p><span class="live"></span>LIVE &#183; Autonomous Multi-Agent Incident Response</p>'
         f'<div class="cc-herolinks"><a href="{ITSM_BOARD_URL}" target="_blank">&#127915; ITSM Board</a>'
         f'<a href="{ADMIN_URL}" target="_blank">&#9881;&#65039; Admin Panel</a></div></div>')
 
@@ -360,7 +366,7 @@ def simulate():
     alarms = incident = rc = rem = actions = ticket = audit = alerts = rag = None
     start = time.time()
     SIMULATING["active"] = True
-    yield board(), gr.update(visible=False)
+    yield board(), gr.update(visible=False), p_alerts(None)
     for stage, payload in pipeline.run_pipeline_streaming():
         if stage == "alarms":
             alarms = payload["alarms"]; LIVE["alarms"] = alarms
@@ -384,7 +390,7 @@ def simulate():
         elapsed = int(time.time() - start)
         LIVE['audit_log'] = audit
         show_btn = any(st.get('requires_approval') for st in (rem or {}).get('remediation_plan', [])) if rem else False
-        yield board(alarms, incident, rc, rem, actions, ticket, audit, alerts, rag, elapsed, active=True), gr.update(visible=show_btn)
+        yield board(alarms, incident, rc, rem, actions, ticket, audit, alerts, rag, elapsed, active=True), gr.update(visible=show_btn), p_alerts(alerts)
 
 
 def _try_ticket_update(message):
@@ -447,7 +453,7 @@ def approve_and_execute():
     from config import ROUTER_API_URL, ITSM_API_URL
     step = _pending_high_risk()
     if not step:
-        yield _board_from_live(), gr.update(visible=False)
+        yield _board_from_live(), gr.update(visible=False), p_alerts(LIVE.get('alerts'))
         return
     tool = step.get("tool", "reset_router")
     args = step.get("tool_args", {})
@@ -478,7 +484,7 @@ def approve_and_execute():
                           "args": {"status": "In Progress"}, "result": tid})
         except Exception:
             pass
-    yield _board_from_live(), gr.update(visible=False)
+    yield _board_from_live(), gr.update(visible=False), p_alerts(LIVE.get('alerts'))
 
 
 def _board_from_live():
@@ -560,6 +566,7 @@ with gr.Blocks(title="NOC Agentic Copilot") as demo:
     sim = gr.Button("\u26a1 Simulate Outage", elem_id="simbtn")
     surface = gr.HTML(board())
     approve_btn = gr.Button("\U0001F512 Approve & Execute High-Risk Action", elem_id="apprbtn", visible=False)
+    notif = gr.HTML(p_alerts(None))
     gr.HTML(CHAT_HEAD)
     gr.ChatInterface(fn=copilot,
                      chatbot=gr.Chatbot(height=320),
@@ -570,8 +577,8 @@ with gr.Blocks(title="NOC Agentic Copilot") as demo:
                                "Mark this incident resolved with a resolution note"])
     _timer = gr.Timer(3)
     _timer.tick(_idle_refresh, outputs=surface)
-    sim.click(simulate, outputs=[surface, approve_btn])
-    approve_btn.click(approve_and_execute, outputs=[surface, approve_btn])
+    sim.click(simulate, outputs=[surface, approve_btn, notif])
+    approve_btn.click(approve_and_execute, outputs=[surface, approve_btn, notif])
 
 
 if __name__ == "__main__":
