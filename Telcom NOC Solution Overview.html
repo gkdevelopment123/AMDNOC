@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NOC Agentic Copilot — Solution Guide</title>
+<style>
+  :root{
+    --ink:#16203a; --paper:#f7f9fe; --card:#ffffff;
+    --indigo:#6366f1; --violet:#8b5cf6; --cyan:#06b6d4; --rose:#f43f7e;
+    --tang:#ff8a3d; --gold:#f5b942; --lime:#10b981; --sky:#0ea5e9;
+    --slate:#64748b; --line:#e2e8f5;
+    --rainbow:linear-gradient(90deg,#6366f1,#8b5cf6,#06b6d4,#10b981);
+    --shadow:0 10px 30px rgba(80,100,200,.10);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{font-family:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif;color:var(--ink);
+    background:radial-gradient(circle at 10% 5%,rgba(99,102,241,.10),transparent 40%),
+      radial-gradient(circle at 90% 10%,rgba(6,182,212,.10),transparent 42%),var(--paper);
+    line-height:1.6;padding-bottom:80px}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 24px}
+
+  /* hero */
+  header{background:linear-gradient(120deg,#6366f1,#8b5cf6 45%,#06b6d4);color:#fff;
+    padding:56px 0 48px;text-align:center;position:relative;overflow:hidden}
+  header h1{font-size:2.5rem;font-weight:800;letter-spacing:-.02em;margin-bottom:12px}
+  header p{font-size:1.1rem;color:#e8ecff;max-width:680px;margin:0 auto}
+  .badges{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:24px}
+  .badge{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.3);
+    padding:7px 16px;border-radius:99px;font-size:.85rem;font-weight:600}
+
+  /* nav */
+  nav{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.92);
+    backdrop-filter:blur(10px);border-bottom:1px solid var(--line);padding:12px 0}
+  nav .wrap{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
+  nav a{font-size:.82rem;font-weight:600;color:var(--slate);text-decoration:none;
+    padding:7px 13px;border-radius:9px;transition:.15s}
+  nav a:hover{background:#eef2fb;color:var(--indigo)}
+
+  section{padding:48px 0 8px}
+  h2{font-size:1.7rem;font-weight:800;margin-bottom:8px;letter-spacing:-.01em}
+  h2 .em{background:var(--rainbow);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .lead{color:var(--slate);font-size:1.02rem;margin-bottom:28px;max-width:760px}
+
+  .card{background:var(--card);border:1px solid var(--line);border-radius:18px;
+    padding:26px;box-shadow:var(--shadow);margin-bottom:20px}
+
+  /* problem/solution split */
+  .split{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  @media(max-width:760px){.split{grid-template-columns:1fr}}
+  .split .card h3{font-size:1.05rem;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+  .prob{border-top:4px solid var(--rose)}
+  .sol{border-top:4px solid var(--lime)}
+  .split ul{list-style:none;margin-top:6px}
+  .split li{padding:6px 0 6px 26px;position:relative;font-size:.92rem}
+  .prob li::before{content:"\2717";position:absolute;left:0;color:var(--rose);font-weight:800}
+  .sol li::before{content:"\2713";position:absolute;left:0;color:var(--lime);font-weight:800}
+
+  /* agent cards */
+  .agents{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
+  .agent{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px;
+    box-shadow:var(--shadow);position:relative;transition:.18s;cursor:default}
+  .agent:hover{transform:translateY(-4px);box-shadow:0 16px 40px rgba(80,100,200,.18)}
+  .agent .ic{width:46px;height:46px;border-radius:12px;display:grid;place-items:center;
+    font-size:1.4rem;margin-bottom:14px;color:#fff}
+  .agent h3{font-size:1.1rem;margin-bottom:6px}
+  .agent .role{font-size:.7rem;text-transform:uppercase;letter-spacing:.08em;
+    font-weight:700;color:var(--indigo);margin-bottom:10px}
+  .agent p{font-size:.9rem;color:#475069}
+  .agent .tok{margin-top:12px;font-family:'JetBrains Mono',monospace;font-size:.74rem;
+    color:var(--slate);background:#f4f7fd;border-radius:8px;padding:6px 10px;display:inline-block}
+
+  /* flow */
+  .flow{display:flex;flex-direction:column;gap:0}
+  .step{display:flex;gap:18px;align-items:flex-start;position:relative;padding-bottom:26px}
+  .step:not(:last-child)::before{content:"";position:absolute;left:23px;top:48px;bottom:-4px;
+    width:2px;background:linear-gradient(var(--indigo),var(--cyan))}
+  .step .n{flex:0 0 auto;width:48px;height:48px;border-radius:50%;
+    background:var(--rainbow);color:#fff;display:grid;place-items:center;
+    font-weight:800;font-size:1.1rem;box-shadow:0 6px 16px rgba(99,102,241,.4);z-index:1}
+  .step .body{flex:1;background:var(--card);border:1px solid var(--line);
+    border-radius:14px;padding:16px 20px;box-shadow:var(--shadow)}
+  .step .body h4{font-size:1.05rem;margin-bottom:4px}
+  .step .body .who{font-size:.7rem;font-weight:700;text-transform:uppercase;
+    letter-spacing:.06em;color:var(--violet);margin-bottom:6px}
+  .step .body p{font-size:.9rem;color:#475069}
+
+  /* architecture services */
+  .svc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px}
+  .svc{border:1px solid var(--line);border-radius:14px;padding:16px;background:var(--card);
+    box-shadow:var(--shadow)}
+  .svc .port{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--cyan);font-size:.85rem}
+  .svc h4{font-size:.98rem;margin:4px 0 6px}
+  .svc p{font-size:.84rem;color:var(--slate)}
+
+  /* tech stack */
+  .stack{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px}
+  .tech{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;
+    text-align:center;box-shadow:var(--shadow)}
+  .tech .t{font-size:.72rem;text-transform:uppercase;letter-spacing:.07em;color:var(--slate);font-weight:700}
+  .tech .v{font-size:1rem;font-weight:700;margin-top:6px}
+
+  /* surfaces / UI tour */
+  .surf{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}
+  .surf .card h3{font-size:1.05rem;margin-bottom:6px}
+  .surf .card .tag{display:inline-block;font-size:.7rem;font-family:'JetBrains Mono',monospace;
+    background:#eef2fb;color:var(--indigo);padding:3px 9px;border-radius:6px;margin-bottom:8px;font-weight:700}
+  .surf .card p{font-size:.88rem;color:#475069}
+
+  /* run steps */
+  .run{counter-reset:run}
+  .run .r{display:flex;gap:16px;margin-bottom:16px;align-items:flex-start}
+  .run .r .num{flex:0 0 auto;width:34px;height:34px;border-radius:9px;background:var(--indigo);
+    color:#fff;display:grid;place-items:center;font-weight:700}
+  .run .r .rc{flex:1}
+  .run .r h4{font-size:1rem;margin-bottom:6px}
+  pre{background:#0f1b33;color:#d6e2ff;border-radius:12px;padding:14px 16px;overflow-x:auto;
+    font-family:'JetBrains Mono',monospace;font-size:.82rem;line-height:1.5;margin-top:8px}
+  pre .c{color:#7dd3fc}
+  code{font-family:'JetBrains Mono',monospace;background:#eef2fb;padding:2px 6px;border-radius:5px;font-size:.85em}
+
+  .pill{display:inline-block;padding:3px 10px;border-radius:99px;font-size:.72rem;font-weight:700}
+  .footer{text-align:center;color:var(--slate);font-size:.85rem;margin-top:50px}
+  .tip{background:#eef6ff;border-left:4px solid var(--indigo);border-radius:0 12px 12px 0;
+    padding:14px 18px;font-size:.9rem;margin-top:14px}
+
+  /* animated data-flow diagram */
+  .diagram{background:linear-gradient(135deg,#0f1b33,#16244a);border-radius:20px;padding:34px 24px;
+    box-shadow:var(--shadow);overflow-x:auto}
+  .df{display:flex;align-items:center;gap:6px;min-width:760px;justify-content:center;flex-wrap:nowrap}
+  .node{flex:0 0 auto;width:96px;text-align:center;color:#fff}
+  .node .dot{width:62px;height:62px;border-radius:16px;margin:0 auto 8px;display:grid;place-items:center;
+    font-size:1.6rem;position:relative;box-shadow:0 8px 20px rgba(0,0,0,.3);
+    animation:pulse 2.4s ease-in-out infinite}
+  .node:nth-child(1) .dot{background:linear-gradient(135deg,#6366f1,#8b5cf6);animation-delay:0s}
+  .node:nth-child(3) .dot{background:linear-gradient(135deg,#8b5cf6,#06b6d4);animation-delay:.3s}
+  .node:nth-child(5) .dot{background:linear-gradient(135deg,#06b6d4,#10b981);animation-delay:.6s}
+  .node:nth-child(7) .dot{background:linear-gradient(135deg,#10b981,#f5b942);animation-delay:.9s}
+  .node:nth-child(9) .dot{background:linear-gradient(135deg,#f5b942,#ff8a3d);animation-delay:1.2s}
+  .node:nth-child(11) .dot{background:linear-gradient(135deg,#ff8a3d,#f43f7e);animation-delay:1.5s}
+  .node:nth-child(13) .dot{background:linear-gradient(135deg,#f43f7e,#8b5cf6);animation-delay:1.8s}
+  .node .lbl{font-size:.7rem;font-weight:700;line-height:1.25}
+  .node .sub{font-size:.6rem;color:#9fb3e0;margin-top:2px}
+  @keyframes pulse{0%,100%{transform:scale(1);box-shadow:0 8px 20px rgba(0,0,0,.3)}
+    50%{transform:scale(1.08);box-shadow:0 10px 28px rgba(120,140,255,.5)}}
+  .arrow{flex:0 0 auto;width:40px;height:3px;position:relative;background:rgba(255,255,255,.15);border-radius:2px}
+  .arrow::after{content:"";position:absolute;top:0;left:0;height:100%;width:14px;border-radius:2px;
+    background:linear-gradient(90deg,#36c5f0,#8b5cf6);animation:flow 1.8s linear infinite}
+  @keyframes flow{0%{left:-14px;opacity:0}20%{opacity:1}80%{opacity:1}100%{left:40px;opacity:0}}
+  .df-cap{text-align:center;color:#9fb3e0;font-size:.82rem;margin-top:20px;font-family:'JetBrains Mono',monospace}
+  .df-legend{display:flex;gap:18px;justify-content:center;flex-wrap:wrap;margin-top:16px;color:#cdd9f5;font-size:.78rem}
+
+  /* chat capability grid */
+  .chatcaps{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px}
+  .ccap{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;
+    box-shadow:var(--shadow);border-left:4px solid var(--violet)}
+  .ccap .ic{font-size:1.4rem;margin-bottom:8px}
+  .ccap h4{font-size:.98rem;margin-bottom:4px}
+  .ccap p{font-size:.85rem;color:#475069}
+  .ccap .ex{display:block;margin-top:8px;font-family:'JetBrains Mono',monospace;font-size:.74rem;
+    color:var(--indigo);background:#eef2fb;border-radius:7px;padding:5px 9px}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <h1>&#128752; Telecom NOC Agentic Copilot</h1>
+    <p>An autonomous, multi-agent AI system that turns an alarm storm into a resolved incident —
+       correlation, root-cause, remediation, ITSM and alerting, running 100% on-prem.</p>
+    <div class="badges">
+      <span class="badge">&#129504; 5 specialist AI agents</span>
+      <span class="badge">&#9889; AMD Instinct MI300X</span>
+      <span class="badge">&#128274; Human-in-the-loop</span>
+      <span class="badge">&#128279; 100% on-prem</span>
+    </div>
+  </div>
+</header>
+
+<nav><div class="wrap">
+  <a href="#problem">Problem</a>
+  <a href="#agents">The Agents</a>
+  <a href="#diagram">Data Flow</a>
+  <a href="#chat">Copilot Chat</a>
+  <a href="#flow">End-to-End Flow</a>
+  <a href="#arch">Architecture</a>
+  <a href="#ingest">Ingestion</a>
+  <a href="#surfaces">The Interfaces</a>
+  <a href="#stack">Tech Stack</a>
+  <a href="#run">How to Run</a>
+</div></nav>
+
+<section id="problem"><div class="wrap">
+  <h2>The <span class="em">Problem</span> &amp; Our Solution</h2>
+  <p class="lead">When a core network device fails, a NOC team is buried under dozens of cascading
+    alarms. Diagnosing and fixing it manually is slow and SLA-breaching. Our Copilot does it
+    autonomously in seconds.</p>
+  <div class="split">
+    <div class="card prob">
+      <h3>&#128557; Without the Copilot</h3>
+      <ul>
+        <li>33+ alarms flood in across 17 devices — which is the real cause?</li>
+        <li>Engineers manually correlate events under pressure</li>
+        <li>Root-cause analysis takes 20+ minutes</li>
+        <li>Remediation steps run by hand, ticket raised late</li>
+        <li>SLA breaches; customer-facing outages drag on</li>
+      </ul>
+    </div>
+    <div class="card sol">
+      <h3>&#128640; With the Copilot</h3>
+      <ul>
+        <li>33 alarms collapse into <b>1 root incident</b> automatically</li>
+        <li>Root cause identified with confidence + evidence</li>
+        <li>Safe fixes auto-execute; risky ones wait for one click</li>
+        <li>ITSM ticket opened and managed end-to-end</li>
+        <li>Right teams alerted; full lifecycle in under a minute</li>
+      </ul>
+    </div>
+  </div>
+</div></section>
+
+<section id="agents"><div class="wrap">
+  <h2>The <span class="em">Agent Team</span></h2>
+  <p class="lead">Five specialist agents, each a focused LLM call with its own prompt, orchestrated
+    in sequence by <code>pipeline.py</code>. They share one locally-served Qwen3-Coder-30B model.
+    (Typical token cost per agent shown — full incident ≈ 16K tokens.)</p>
+  <div class="agents">
+    <div class="agent">
+      <div class="ic" style="background:linear-gradient(135deg,#6366f1,#8b5cf6)">&#128225;</div>
+      <div class="role">Agent 1 &middot; Detection</div>
+      <h3>Correlation Agent</h3>
+      <p>Reads the full alarm storm + network topology and collapses dozens of symptomatic alarms
+         into a single root incident, identifying the originating device.</p>
+      <span class="tok">~6,600 tokens</span>
+    </div>
+    <div class="agent">
+      <div class="ic" style="background:linear-gradient(135deg,#8b5cf6,#06b6d4)">&#128218;</div>
+      <div class="role">Agent 2 &middot; Knowledge</div>
+      <h3>RAG + Reranker</h3>
+      <p>Retrieves candidate runbooks from a ChromaDB vector store, then an LLM reranks them by
+         relevance to <em>this</em> incident — the best-match playbook leads.</p>
+      <span class="tok">~900 tokens</span>
+    </div>
+    <div class="agent">
+      <div class="ic" style="background:linear-gradient(135deg,#06b6d4,#10b981)">&#129513;</div>
+      <div class="role">Agent 3 &middot; Diagnosis</div>
+      <h3>Root Cause Agent</h3>
+      <p>Combines the incident, alarms and top runbooks to produce a root-cause diagnosis with a
+         confidence score and supporting evidence.</p>
+      <span class="tok">~6,000 tokens</span>
+    </div>
+    <div class="agent">
+      <div class="ic" style="background:linear-gradient(135deg,#10b981,#f5b942,#ff8a3d)">&#128295;</div>
+      <div class="role">Agent 4 &middot; Action</div>
+      <h3>Remediation Agent</h3>
+      <p>Builds a risk-ranked action plan. Low-risk steps auto-execute against device APIs;
+         high-risk steps (e.g. router reboot) are held for human approval.</p>
+      <span class="tok">~1,400 tokens</span>
+    </div>
+    <div class="agent">
+      <div class="ic" style="background:linear-gradient(135deg,#ff8a3d,#f43f7e)">&#128226;</div>
+      <div class="role">Agent 5 &middot; Notify</div>
+      <h3>Alerting Agent</h3>
+      <p>Decides who to notify based on severity and customer impact (on-call, NOC Tier-2,
+         management) and drafts each alert; escalates when BTS sites are affected.</p>
+      <span class="tok">~800 tokens</span>
+    </div>
+    <div class="agent">
+      <div class="ic" style="background:linear-gradient(135deg,#0ea5e9,#6366f1)">&#128172;</div>
+      <div class="role">Interface &middot; Conversational</div>
+      <h3>Copilot Chat</h3>
+      <p>A grounded assistant that answers questions about the live incident and drives ITSM
+         ticket updates and resolution in natural language.</p>
+      <span class="tok">~2,000 tokens / turn</span>
+    </div>
+  </div>
+</div></section>
+
+<section id="diagram"><div class="wrap">
+  <h2>Animated <span class="em">Data Flow</span></h2>
+  <p class="lead">How data moves through the system in one incident &mdash; from raw alarms to a
+    resolved, notified ticket. Each agent hands its output to the next.</p>
+  <div class="diagram">
+    <div class="df">
+      <div class="node"><div class="dot">&#128229;</div><div class="lbl">Alarms</div><div class="sub">ingest</div></div>
+      <div class="arrow"></div>
+      <div class="node"><div class="dot">&#128225;</div><div class="lbl">Correlate</div><div class="sub">agent 1</div></div>
+      <div class="arrow"></div>
+      <div class="node"><div class="dot">&#128218;</div><div class="lbl">RAG + Rerank</div><div class="sub">agent 2</div></div>
+      <div class="arrow"></div>
+      <div class="node"><div class="dot">&#129513;</div><div class="lbl">Root Cause</div><div class="sub">agent 3</div></div>
+      <div class="arrow"></div>
+      <div class="node"><div class="dot">&#128295;</div><div class="lbl">Remediate</div><div class="sub">agent 4</div></div>
+      <div class="arrow"></div>
+      <div class="node"><div class="dot">&#127915;</div><div class="lbl">ITSM Ticket</div><div class="sub">create</div></div>
+      <div class="arrow"></div>
+      <div class="node"><div class="dot">&#128226;</div><div class="lbl">Alerting</div><div class="sub">agent 5</div></div>
+    </div>
+    <div class="df-cap">all stages call &rarr; vLLM &middot; Qwen3-Coder-30B on AMD MI300X (100% on-prem)</div>
+    <div class="df-legend">
+      <span>&#128260; streaming live to the dashboard</span>
+      <span>&#128274; human approval before high-risk execution</span>
+      <span>&#128172; Copilot chat can act at any point</span>
+    </div>
+  </div>
+  <div class="tip">&#128161; The moving pulses show data flowing left-to-right: each agent's structured
+    output (incident &rarr; ranked runbooks &rarr; root cause &rarr; action plan &rarr; ticket &rarr;
+    notifications) becomes the next agent's input, all grounded in the same local model.</div>
+</div></section>
+
+<section id="flow"><div class="wrap">
+  <h2>End-to-End <span class="em">Flow</span></h2>
+  <p class="lead">What happens, in order, when an outage is simulated — each stage is a real call to
+    the local model, streamed live to the dashboard.</p>
+  <div class="flow">
+    <div class="step"><div class="n">1</div><div class="body">
+      <div class="who">Ingestion</div><h4>Alarm storm arrives</h4>
+      <p>~33 alarms across 17 devices (core router, PE routers, switches, base stations) stream in
+         with severities, KPIs and timestamps.</p></div></div>
+    <div class="step"><div class="n">2</div><div class="body">
+      <div class="who">Correlation Agent</div><h4>Collapse into one incident</h4>
+      <p>The agent finds the common root and groups all symptomatic alarms into a single incident —
+         the correlation map visibly converges to one hub.</p></div></div>
+    <div class="step"><div class="n">3</div><div class="body">
+      <div class="who">RAG + Reranker</div><h4>Retrieve &amp; rank knowledge</h4>
+      <p>Five candidate runbooks are retrieved by vector similarity, then the LLM reranks them;
+         the Knowledge Base panel shows scores and the best match.</p></div></div>
+    <div class="step"><div class="n">4</div><div class="body">
+      <div class="who">Root Cause Agent</div><h4>Diagnose the fault</h4>
+      <p>Produces the root cause with a confidence bar and evidence bullets drawn from the alarms
+         and the top-ranked runbook.</p></div></div>
+    <div class="step"><div class="n">5</div><div class="body">
+      <div class="who">Remediation Agent + Execution</div><h4>Plan &amp; act</h4>
+      <p>A risk-ranked plan is produced. Low-risk steps (clear BGP, restart interface) auto-execute
+         against the mock device API; the high-risk router reset is held with an
+         <span class="pill" style="background:#fff3df;color:#b5760b">&#128274; APPROVAL</span> gate.</p></div></div>
+    <div class="step"><div class="n">6</div><div class="body">
+      <div class="who">ITSM Agent</div><h4>Open the ticket</h4>
+      <p>A ServiceNow-style incident ticket is created (priority by severity) and appears live on
+         the ITSM board with full details and a work-notes history.</p></div></div>
+    <div class="step"><div class="n">7</div><div class="body">
+      <div class="who">Alerting Agent</div><h4>Notify the right people</h4>
+      <p>Notifications are routed by severity/impact to on-call, NOC Tier-2 and management, with an
+         escalation badge when customer-facing sites are hit.</p></div></div>
+    <div class="step"><div class="n">8</div><div class="body">
+      <div class="who">Human-in-the-loop</div><h4>Approve &amp; resolve</h4>
+      <p>The engineer clicks <span class="pill" style="background:linear-gradient(120deg,#ff8a3d,#f43f7e);color:#fff">Approve &amp; Execute</span>
+         to run the risky step (ticket &rarr; In Progress), then confirms resolution by chat
+         (ticket &rarr; Resolved with an auto-generated note).</p></div></div>
+  </div>
+  <div class="tip">&#128161; The full lifecycle a ticket moves through: <b>New</b> (auto-created) &rarr;
+    <b>In Progress</b> (human approves the high-risk action) &rarr; <b>Resolved</b> (confirmed by chat),
+    every transition logged in the audit trail and reflected live on the ITSM board.</div>
+</div></section>
+
+<section id="arch"><div class="wrap">
+  <h2>System <span class="em">Architecture Components</span></h2>
+  <p class="lead">Six cooperating services. The dashboard orchestrates the agents; the mock APIs,
+    ITSM board and admin panel are independent services it talks to.</p>
+  <div class="svc-grid">
+    <div class="svc"><div class="port">:8000</div><h4>vLLM &middot; Qwen3-Coder-30B</h4>
+      <p>Local LLM inference. Every agent calls this — no external APIs.</p></div>
+    <div class="svc"><div class="port">:7860</div><h4>Dashboard (Gradio)</h4>
+      <p>Command center: live pipeline view, approval button, Copilot chat.</p></div>
+    <div class="svc"><div class="port">:8080</div><h4>ITSM Board</h4>
+      <p>Standalone ServiceNow-style incident board; clickable, auto-refreshing.</p></div>
+    <div class="svc"><div class="port">:8090</div><h4>Admin Panel</h4>
+      <p>Configure SLA timer and notification recipients; applied live.</p></div>
+    <div class="svc"><div class="port">:8002</div><h4>Mock ITSM API</h4>
+      <p>In-memory ticket store with full lifecycle + work notes.</p></div>
+    <div class="svc"><div class="port">:8001</div><h4>Mock Router API</h4>
+      <p>Simulated device actions: clear BGP, restart interface, reset router.</p></div>
+  </div>
+  <div class="tip">&#128221; <b>Data flow:</b>
+    alarms &rarr; correlate &rarr; RAG+rerank &rarr; root cause &rarr; remediate &rarr; execute
+    &rarr; ticket &rarr; alert — orchestrated by <code>pipeline.py</code> and streamed to the dashboard.</div>
+</div></section>
+
+<section id="ingest"><div class="wrap">
+  <h2><span class="em">Ingestion</span> &amp; the Production Path</h2>
+  <p class="lead">How alarms, logs and KPIs enter the system today &mdash; and exactly how this
+    connects to a real network in production. The ingestion layer is <b>decoupled</b>: only the
+    source changes, the entire multi-agent pipeline stays identical.</p>
+
+  <div class="card">
+    <h3 style="font-size:1.1rem;margin-bottom:10px">&#128229; The alarm schema (production-shaped)</h3>
+    <p style="font-size:.9rem;color:#475069;margin-bottom:10px">Every alarm &mdash; whether from the
+      simulator today or a live feed tomorrow &mdash; is one object with the same fields a real NOC
+      fault-management system produces:</p>
+    <pre>{
+  <span class="c">"alarm_id"</span>:    "ALM-001",
+  <span class="c">"timestamp"</span>:   "2026-06-16T09:00:00",
+  <span class="c">"device_id"</span>:   "Router-Core-01",
+  <span class="c">"device_type"</span>: "core",
+  <span class="c">"site"</span>:        "DC-North",
+  <span class="c">"alarm_type"</span>:  "BGP_PEER_DOWN",
+  <span class="c">"severity"</span>:    "CRITICAL",
+  <span class="c">"description"</span>: "BGP session lost with upstream peer 10.0.0.1...",
+  <span class="c">"kpis"</span>:        { "cpu": 94, "packet_loss": 0, "latency_ms": 0 }
+}</pre>
+    <p style="font-size:.85rem;color:var(--slate);margin-top:10px">Paired with a
+      <b>topology model</b> (device upstream/downstream relationships) so the Correlation Agent can
+      understand cascades. Both are handed to the pipeline as one JSON payload.</p>
+  </div>
+
+  <div class="split" style="margin-top:8px">
+    <div class="card" style="border-top:4px solid var(--sky)">
+      <h3>&#127922; Today &middot; Simulated source</h3>
+      <p style="font-size:.9rem;color:#475069">A realistic alarm generator produces a scripted
+        outage &mdash; a root fault on the core router cascading to PE routers, switches and base
+        stations over ~60 seconds. The inputs are synthetic, but the <b>schema and the AI processing
+        are real</b>: every alarm flows through the same pipeline a live feed would.</p>
+      <pre>alarms = generate_storm()      <span class="c"># the swap point</span>
+payload = {"alarms": alarms, "topology": topo}
+correlate(payload)             <span class="c"># &rarr; AI pipeline</span></pre>
+    </div>
+    <div class="card" style="border-top:4px solid var(--lime)">
+      <h3>&#127981; Production &middot; Live source</h3>
+      <p style="font-size:.9rem;color:#475069">Replace the single source line with a thin
+        <b>ingestion adapter</b> that subscribes to the real feed and maps events into the same alarm
+        object. <b>Nothing downstream changes.</b></p>
+      <pre>alarms = ingest_from_kafka()   <span class="c"># or SNMP / EMS</span>
+payload = {"alarms": alarms, "topology": cmdb}
+correlate(payload)             <span class="c"># same pipeline</span></pre>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3 style="font-size:1.1rem;margin-bottom:14px">&#128268; Real-world ingestion connectors</h3>
+    <div class="svc-grid">
+      <div class="svc"><h4>&#128225; SNMP Traps</h4>
+        <p>Devices emit traps to a collector; the adapter parses them into alarm objects.</p></div>
+      <div class="svc"><h4>&#128221; Syslog</h4>
+        <p>Stream device logs to a syslog server; critical/error lines become alarms.</p></div>
+      <div class="svc"><h4>&#128202; Streaming Telemetry</h4>
+        <p>gNMI/streaming KPIs (CPU, packet loss, latency) trigger threshold-breach alarms.</p></div>
+      <div class="svc"><h4>&#128235; Kafka / Event Bus</h4>
+        <p>EMS/devices publish events to a topic; the pipeline consumes it in real time at scale.</p></div>
+      <div class="svc"><h4>&#127760; OSS / EMS API</h4>
+        <p>Adapter to existing fault management (Netcool, U2000, NSP) &mdash; the usual telecom case.</p></div>
+      <div class="svc"><h4>&#128451;&#65039; CMDB / Inventory</h4>
+        <p>Live topology pulled from the CMDB instead of a static file.</p></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3 style="font-size:1.1rem;margin-bottom:12px">&#128640; What changes for production (and what doesn't)</h3>
+    <div class="split">
+      <div>
+        <p style="font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--lime);margin-bottom:8px">Swap these adapters</p>
+        <ul style="list-style:none">
+          <li style="padding:6px 0 6px 24px;position:relative;font-size:.9rem"><span style="position:absolute;left:0;color:var(--lime);font-weight:800">&#8644;</span> Alarm source &rarr; Kafka / SNMP / EMS feed</li>
+          <li style="padding:6px 0 6px 24px;position:relative;font-size:.9rem"><span style="position:absolute;left:0;color:var(--lime);font-weight:800">&#8644;</span> Mock ITSM API &rarr; real ServiceNow REST connector</li>
+          <li style="padding:6px 0 6px 24px;position:relative;font-size:.9rem"><span style="position:absolute;left:0;color:var(--lime);font-weight:800">&#8644;</span> Mock router API &rarr; Ansible / NETCONF / vendor automation</li>
+          <li style="padding:6px 0 6px 24px;position:relative;font-size:.9rem"><span style="position:absolute;left:0;color:var(--lime);font-weight:800">&#8644;</span> Static topology &rarr; live CMDB sync</li>
+          <li style="padding:6px 0 6px 24px;position:relative;font-size:.9rem"><span style="position:absolute;left:0;color:var(--lime);font-weight:800">&#8644;</span> Click-to-run &rarr; continuous streaming mode</li>
+        </ul>
+      </div>
+      <div>
+        <p style="font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--indigo);margin-bottom:8px">Stays exactly the same</p>
+        <ul style="list-style:none">
+          <li style="padding:6px 0 6px 24px;position:relative;font-size:.9rem"><span style="position:absolute;left:0;color:var(--indigo);font-weight:800">&#10003;</span> All 5 agents &amp; their prompts</li>
+          <li style="padding:6px 0 6px 24px;position:relative;font-size:.9rem"><span style="position:absolute;left:0;color:var(--indigo);font-weight:800">&#10003;</span> Correlation &rarr; RCA &rarr; remediation logic</li>
+          <li style="padding:6px 0 6px 24px;position:relative;font-size:.9rem"><span style="position:absolute;left:0;color:var(--indigo);font-weight:800">&#10003;</span> RAG knowledge base &amp; reranking</li>
+          <li style="padding:6px 0 6px 24px;position:relative;font-size:.9rem"><span style="position:absolute;left:0;color:var(--indigo);font-weight:800">&#10003;</span> Human-in-the-loop approval gate</li>
+          <li style="padding:6px 0 6px 24px;position:relative;font-size:.9rem"><span style="position:absolute;left:0;color:var(--indigo);font-weight:800">&#10003;</span> The on-prem local model on MI300X</li>
+        </ul>
+      </div>
+    </div>
+    <div class="tip">&#128161; <b>The one-line pitch:</b> "Ingestion is decoupled &mdash; today a
+      realistic simulator, in production a thin adapter to your existing EMS, Kafka or SNMP feed.
+      The same alarm schema flows into the same multi-agent pipeline, so going live means writing
+      one connector, not rebuilding the system."</div>
+  </div>
+</div></section>
+
+<section id="surfaces"><div class="wrap">
+  <h2>The <span class="em">Interfaces</span></h2>
+  <p class="lead">Three connected surfaces, linked from the dashboard header.</p>
+  <div class="surf">
+    <div class="card"><span class="tag">port 7860</span><h3>&#128202; Command Dashboard</h3>
+      <p>Alarm feed, correlation map, SLA timer, Knowledge Base (RAG) panel, root cause, ITSM ticket,
+         remediation &amp; actions, audit log, notifications — plus the approval button and Copilot chat.</p></div>
+    <div class="card"><span class="tag">port 8080</span><h3>&#127915; ITSM Board</h3>
+      <p>ServiceDesk-style incident list. Click any ticket for a full record: description, root cause,
+         affected CIs, work-notes timeline, and a per-ticket Resolve button.</p></div>
+    <div class="card"><span class="tag">port 8090</span><h3>&#9881;&#65039; Admin Panel</h3>
+      <p>Set the SLA breach window and manage notification teams (add/remove). Changes reflect on the
+         dashboard within seconds — no restart needed.</p></div>
+  </div>
+</div></section>
+
+<section id="chat"><div class="wrap">
+  <h2>Bonus: <span class="em">Copilot Chat</span> &mdash; Act by Conversation</h2>
+  <p class="lead">Beyond the autonomous pipeline, an embedded Copilot chat lets a NOC engineer
+    <b>investigate and act on incidents in plain English</b> &mdash; a conversational control layer
+    over the live incident and the ITSM system. Every chat action reflects instantly on the ITSM board.</p>
+  <div class="chatcaps">
+    <div class="ccap"><div class="ic">&#10004;&#65039;</div><h4>Resolve a ticket</h4>
+      <p>Close out an incident with an auto-generated resolution note (root cause + tools used).</p>
+      <span class="ex">"resolve this incident"</span></div>
+    <div class="ccap"><div class="ic">&#128290;</div><h4>Change priority</h4>
+      <p>Re-prioritise a ticket between P1&ndash;P4 on the fly.</p>
+      <span class="ex">"set this to priority P2"</span></div>
+    <div class="ccap"><div class="ic">&#128100;</div><h4>Reassign</h4>
+      <p>Hand the ticket to a different person or assignment group.</p>
+      <span class="ex">"reassign to the Core Network team"</span></div>
+    <div class="ccap"><div class="ic">&#128221;</div><h4>Add work notes</h4>
+      <p>Append a note to the ticket's activity timeline.</p>
+      <span class="ex">"add a note that BGP was restored"</span></div>
+    <div class="ccap"><div class="ic">&#128260;</div><h4>Change status</h4>
+      <p>Move a ticket through New &rarr; In Progress &rarr; Resolved &rarr; Closed.</p>
+      <span class="ex">"mark this in progress"</span></div>
+    <div class="ccap"><div class="ic">&#127919;</div><h4>Target any ticket</h4>
+      <p>Name a specific ticket ID; if it's ambiguous, the Copilot asks which one (open tickets only).</p>
+      <span class="ex">"resolve INC2976646"</span></div>
+    <div class="ccap"><div class="ic">&#129504;</div><h4>Investigate the incident</h4>
+      <p>Ask grounded questions about the live incident &mdash; cause, safety of an action, next steps.</p>
+      <span class="ex">"why did this incident happen?"</span></div>
+    <div class="ccap"><div class="ic">&#128202;</div><h4>Summarise</h4>
+      <p>Get a concise summary for a manager or handover.</p>
+      <span class="ex">"summarise this for my manager"</span></div>
+  </div>
+  <div class="tip">&#128161; The chat is <b>grounded</b> in the live incident state and wired to the same
+    ITSM API the pipeline uses &mdash; so a spoken instruction like "resolve INC2976646 and note that
+    BGP was restored" updates the real ticket and the board within seconds. It's a natural-language
+    control plane on top of the autonomous agents.</div>
+</div></section>
+
+<section id="stack"><div class="wrap">
+  <h2>Complete <span class="em">Tech Stack</span></h2>
+  <div class="stack">
+    <div class="tech"><div class="t">Model</div><div class="v">Qwen3-Coder-30B</div></div>
+    <div class="tech"><div class="t">Serving</div><div class="v">vLLM 0.11</div></div>
+    <div class="tech"><div class="t">Hardware</div><div class="v">AMD MI300X</div></div>
+    <div class="tech"><div class="t">GPU Stack</div><div class="v">ROCm 7.0</div></div>
+    <div class="tech"><div class="t">RAG Store</div><div class="v">ChromaDB</div></div>
+    <div class="tech"><div class="t">Embeddings</div><div class="v">all-MiniLM-L6-v2</div></div>
+    <div class="tech"><div class="t">Dashboard</div><div class="v">Gradio</div></div>
+    <div class="tech"><div class="t">APIs</div><div class="v">FastAPI</div></div>
+    <div class="tech"><div class="t">Language</div><div class="v">Python 3.12</div></div>
+    <div class="tech"><div class="t">Deployment</div><div class="v">100% On-Prem</div></div>
+  </div>
+</div></section>
+
+<section id="run"><div class="wrap">
+  <h2>How to <span class="em">Run It</span></h2>
+  <p class="lead">Two terminals: one for the model, one for the app.</p>
+  <div class="card run">
+    <div class="r"><div class="num">0</div><div class="rc">
+      <h4>One-time: pin the RAG dependency</h4>
+      <pre>pip install "huggingface-hub>=0.34.0,&lt;1.0"</pre></div></div>
+    <div class="r"><div class="num">1</div><div class="rc">
+      <h4>Terminal 1 — start the local LLM (vLLM)</h4>
+      <pre><span class="c"># serves Qwen3-Coder-30B on port 8000</span>
+vllm serve Qwen/Qwen3-Coder-30B-A3B-Instruct \
+  --host 0.0.0.0 --port 8000 \
+  --tensor-parallel-size 1 \
+  --max-model-len 100000 \
+  --enable-auto-tool-choice \
+  --tool-call-parser qwen3_xml \
+  --disable-log-stats</pre>
+      <p style="font-size:.85rem;color:var(--slate);margin-top:8px">Verify:
+        <code>curl -s http://localhost:8000/v1/models</code></p></div></div>
+    <div class="r"><div class="num">2</div><div class="rc">
+      <h4>Terminal 2 — start all app services</h4>
+      <pre><span class="c"># starts mocks + ITSM board + admin + dashboard, health-checks each</span>
+bash run_all.sh</pre>
+      <p style="font-size:.85rem;color:var(--slate);margin-top:8px">Leaves vLLM untouched. Prints the
+        dashboard link plus the ITSM board (8080) and admin (8090) URLs.</p></div></div>
+    <div class="r"><div class="num">3</div><div class="rc">
+      <h4>Open &amp; demo</h4>
+      <p style="font-size:.9rem;color:#475069">Open the dashboard link, click
+        <b>&#9889; Simulate P1 Outage</b> (or <b>&#127922; Simulate Random Incident</b>), watch the
+        pipeline run, click <b>&#128274; Approve &amp; Execute</b>, open the ITSM board, and resolve
+        via the Copilot chat.</p></div></div>
+  </div>
+  <div class="tip">&#128260; <b>Stop / restart:</b> press <code>Ctrl+C</code> in the
+    <code>run_all.sh</code> terminal and run <code>bash run_all.sh</code> again. Keep vLLM running.
+    If the in-app links point to the wrong host, edit <code>PROXY_BASE</code> at the top of
+    <code>app.py</code>.</div>
+</div></section>
+
+<div class="footer wrap">
+  <p>Telecom NOC Agentic Copilot &middot; Autonomous multi-agent incident response &middot;
+     Synthetic inputs, real on-prem AI processing.</p>
+</div>
+
+</body>
+</html>
