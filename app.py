@@ -422,7 +422,24 @@ def _try_ticket_update(message):
     if not intent.get("is_update"):
         return None
 
-    tid = intent.get("ticket_id") or cur_id
+    named = intent.get("ticket_id")
+    if named and not str(named).upper().startswith("INC"):
+        named = None
+    tid = named or cur_id
+    if not named and not cur_id:
+        try:
+            import requests as _rq
+            from config import ITSM_API_URL as _IT
+            allt = _rq.get(f"{_IT}/tickets", timeout=4).json()
+        except Exception:
+            allt = []
+        open_t = [t for t in allt if t.get("status") not in ("Resolved", "Closed")]
+        if len(open_t) == 1:
+            tid = open_t[0].get("ticket_id")
+        elif len(open_t) > 1:
+            lst = "; ".join(f"{t.get('ticket_id')} ({t.get('priority','?')})" for t in open_t)
+            return ("You have multiple open tickets — which one should I work on? "
+                    f"Please name it, e.g. \"resolve {open_t[0].get('ticket_id')}\".\n\nOpen tickets: " + lst)
     if not tid:
         return "I couldn't tell which ticket to update — no active incident ticket yet."
     body = {"ticket_id": tid}
@@ -436,7 +453,8 @@ def _try_ticket_update(message):
         # keep LIVE ticket fresh
         if LIVE.get("ticket"):
             LIVE["ticket"].update({k: v for k, v in body.items() if k != "ticket_id"})
-        return (f"✅ Updated **{tid}** ({changed}). "
+        return (f"Working on ticket **{tid}**.\n\n"
+                f"✅ Updated **{tid}** ({changed}). "
                 f"State is now **{t.get('status','?')}**. The change is live on the ITSM board.")
     except Exception as e:
         return f"(couldn't reach ITSM to update {tid}: {e})"
@@ -496,11 +514,26 @@ def _board_from_live():
                  LIVE.get("elapsed", 0), active=True)
 
 
-def _resolve_ticket():
+def _resolve_ticket(message=""):
+    import re as _re
     import requests
     from config import ITSM_API_URL
     cur = LIVE.get("ticket") or {}
-    tid = cur.get("ticket_id", "")
+    m = _re.search(r"INC\d+", (message or "").upper())
+    named = m.group(0) if m else None
+    tid = named or cur.get("ticket_id", "")
+    if not named:
+        try:
+            allt = requests.get(f"{ITSM_API_URL}/tickets", timeout=4).json()
+        except Exception:
+            allt = []
+        open_t = [t for t in allt if t.get("status") not in ("Resolved", "Closed")]
+        if len(open_t) > 1:
+            lst = "; ".join(f"{t.get('ticket_id')} ({t.get('priority','?')})" for t in open_t)
+            return ("You have multiple open tickets — which one should I resolve? "
+                    f"Please name it, e.g. \"resolve {open_t[0].get('ticket_id')}\".\n\nOpen tickets: " + lst)
+        elif len(open_t) == 1:
+            tid = open_t[0].get("ticket_id")
     if not tid:
         return "There's no active incident ticket to resolve yet."
     rc = LIVE.get("root_cause") or {}
@@ -511,7 +544,7 @@ def _resolve_ticket():
     try:
         requests.post(f"{ITSM_API_URL}/update_ticket", json={
             "ticket_id": tid, "status": "Resolved", "work_note": note}, timeout=5)
-        if LIVE.get("ticket"):
+        if LIVE.get("ticket") and LIVE["ticket"].get("ticket_id") == tid:
             LIVE["ticket"]["status"] = "Resolved"
         audit = LIVE.get("audit_log") or []
         audit.append({"ts": time.strftime("%H:%M:%S"), "action": "ticket_resolved",
@@ -544,7 +577,7 @@ def simulate_random():
 
 def copilot(message, history):
     if _is_resolution_confirm(message):
-        return _resolve_ticket()
+        return _resolve_ticket(message)
     upd = _try_ticket_update(message)
     if upd:
         return upd
